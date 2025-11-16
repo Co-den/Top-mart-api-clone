@@ -1,0 +1,89 @@
+const bcrypt = require("bcrypt");
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema({
+  phone: {
+    type: Number,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  confirmPassword: {
+    type: String,
+    required: true,
+  },
+  referralCode: {
+    type: String,
+    required: false,
+    unique: true,
+  },
+  passwordChangedAt: {
+    type: Date,
+  },
+  passwordResetToken: {
+    type: String,
+    select: false,
+  },
+  passwordResetExpires: {
+    type: Date,
+    select: false,
+  },
+});
+
+userSchema.pre("save", async function (next) {
+  // Only run this function if password was actually modified
+  if (!this.isModified("password")) return next();
+
+  // Hash the password with cost of 12
+  this.password = await bcrypt.hash(this.password, 12);
+
+  // Delete passwordConfirm field
+  this.confirmPassword = undefined;
+  next();
+});
+
+// Middleware to update passwordChangedAt before saving the user
+userSchema.pre("save", function (next) {
+  if (!this.isModified("password") || this.isNew) return next();
+  this.passwordChangedAt = Date.now() - 1000;
+  next();
+});
+
+// Instance method to check if the provided password is correct
+userSchema.methods.correctPassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Instance method to check if password was changed after token was issued
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return changedTimestamp > JWTTimestamp;
+  }
+  return false;
+};
+
+// Instance method to generate password reset token
+userSchema.methods.createPasswordResetToken = function () {
+  const resetToken =
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+  this.passwordResetToken = resetToken;
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // (10 minutes)
+  return resetToken;
+};
+
+// Create and export the User model
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;
