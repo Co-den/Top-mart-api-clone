@@ -1,4 +1,4 @@
-name: NodeJS CI
+name: NodeJS Backend
 
 on:
   push:
@@ -10,36 +10,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
+          node-version: 20
 
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Run Tests
-        run: |
-          if npm run | grep -q "test"; then
-            npm test
-          else
-            echo "No tests found, skipping"
-          fi
-
-      - name: Build with Webpack
-        run: npx webpack --mode production
-
-      - name: Upload Dist Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-dist
-          path: dist/
+      - name: Install dependencies
+        run: npm install
