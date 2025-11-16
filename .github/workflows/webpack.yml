@@ -1,10 +1,10 @@
-name: NodeJS with Webpack
+name: NodeJS CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
@@ -15,14 +15,31 @@ jobs:
         node-version: [18.x, 20.x, 22.x]
 
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
 
-    - name: Build
-      run: |
-        npm install
-        npx webpack
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: |
+          if npm run | grep -q "test"; then
+            npm test
+          else
+            echo "No tests found, skipping"
+          fi
+
+      - name: Build with Webpack
+        run: npx webpack --mode production
+
+      - name: Upload Dist Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-dist
+          path: dist/
