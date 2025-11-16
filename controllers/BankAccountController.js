@@ -5,7 +5,7 @@ dotenv.config({ path: "./config.env" });
 
 exports.resolveAccountName = async (req, res) => {
   const { accountNumber, bankCode } = req.body;
-
+ 
   if (!accountNumber || !bankCode) {
     return res.status(400).json({
       success: false,
