@@ -7,7 +7,6 @@ dotenv.config({ path: "config.env" });
 
 exports.paystackWebhook = async (req, res) => {
   try {
-    // req.rawBody must be available - you must use express.raw() for this route
     const secret = process.env.PAYSTACK_SECRET_KEY;
     const hash = crypto
       .createHmac("sha512", secret)
@@ -25,7 +24,7 @@ exports.paystackWebhook = async (req, res) => {
 
     if (event === "charge.success") {
       const reference = data.reference;
-      const amount = data.amount; // kobo
+      const amount = data.amount;
       const deposit = await Deposit.findOne({ reference }).populate("account");
 
       if (!deposit) {
