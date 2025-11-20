@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
 const dotenv = require("dotenv");
 dotenv.config({ path: "./config.env" });
+const { sendSignupEmail } = require("../utils/email");
 
 const jwtCookieExpiresIn = Number(process.env.JWT_COOKIE_EXPIRES_IN);
 
@@ -40,9 +41,9 @@ const createSendToken = (user, statusCode, req, res) => {
 exports.register = async (req, res) => {
   try {
     const newUser = await User.create({
-      name: req.body.name,
-      phone: req.body.phone,
+      fullName: req.body.fullName,
       email: req.body.email,
+      phoneNumber: req.body.phoneNumber,
       password: req.body.password,
       confirmPassword: req.body.confirmPassword,
       referralCode: req.body.referralCode,
@@ -56,27 +57,37 @@ exports.register = async (req, res) => {
       currency: "NGN",
     });
 
+    // Link account to user
+    newUser.account = account._id;
+    await newUser.save({ validateBeforeSave: false });
+
+    // Send welcome email
+    await sendSignupEmail(newUser.email, {
+      name: newUser.fullName,
+      verificationUrl: `${req.protocol}://${req.get(
+        "host"
+      )}/verify-email?token=${newUser.emailVerificationToken}`,
+    });
     createSendToken(newUser, 201, req, res, account);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-
 //user login
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { phoneNumber, password } = req.body;
 
-  // Check if email and password are provided
-  if (!email || !password) {
+  // Check if phoneNumber and password are provided
+  if (!phoneNumber || !password) {
     return res.status(400).json({
       status: "fail",
-      message: "Please provide email and password!",
+      message: "Please provide phone-number and password!",
     });
   }
 
   // Check if user exists
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({ phoneNumber }).select("+password");
   if (!user || !(await user.correctPassword(password, user.password))) {
     return res.status(401).json({
       status: "fail",
@@ -100,34 +111,28 @@ exports.logout = (req, res) => {
 };
 
 // Protect routes
-exports.protect = async (req, res, next) => {
-  let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    token = req.headers.authorization.split(" ")[1];
-  } else if (req.cookies.jwt) {
-    token = req.cookies.jwt;
-  }
+exports.protect = (req, res, next) => {
+  // accept token from cookie OR Authorization header
+  const tokenFromCookie = req.cookies?.jwt;
+  const authHeader = req.headers?.authorization;
+  const tokenFromHeader =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
+
+  const token = tokenFromCookie || tokenFromHeader;
 
   if (!token) {
-    return res.status(401).json({
-      message: "You are not logged in!",
-    });
+    return res.status(401).json({ message: "Not authenticated" });
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const currentUser = await User.findById(decoded.id);
-
-  if (!currentUser) {
-    return res.status(401).json({
-      message: "User no longer exists",
-    });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // or fetch user from DB if needed
+    return next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
-
-  req.user = currentUser;
-  next();
 };
 
 // Check if user is logged in

@@ -1,9 +1,19 @@
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 
+const generateUniqueId = () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const letters = Array.from(
+    { length: 5 },
+    () => chars[Math.floor(Math.random() * chars.length)]
+  ).join("");
+  const number = Math.floor(1000 + Math.random() * 9000);
+  return `${letters}${number}`;
+}
+
 const userSchema = new mongoose.Schema({
-  phone: {
-    type: Number,
+  fullName: {
+    type: String,
     required: true,
   },
   email: {
@@ -11,13 +21,26 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  phoneNumber: {
+    type: Number,
+    required: true,
+    unique: true,
+  },
   password: {
     type: String,
     required: true,
+    unique: true,
+    minlength: 8,
   },
   confirmPassword: {
     type: String,
-    required: true,
+    required: [true, "Please confirm your password"],
+    validate: {
+      validator: function (el) {
+        return el === this.password;
+      },
+      message: "Passwords do not match",
+    },
   },
   referralCode: {
     type: String,
@@ -35,6 +58,8 @@ const userSchema = new mongoose.Schema({
     type: Date,
     select: false,
   },
+  account: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
+  uniqueId: { type: String, unique: true, default: generateUniqueId },
 });
 
 userSchema.pre("save", async function (next) {

@@ -1,13 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const UserController = require("../controllers/UserController");
-const v = require("../controllers/ValidationController");
+const AuthController = require("../auth/authController");
+
+router.use(AuthController.protect);
 
 // Get user profile
-router.get("/profile/:id", UserController.getProfile);
+router.get("/me", UserController.getCurrentUser);
+// Get all users
+router.get("/", UserController.getAllUsers);
 // Update user profile
-router.put("/profile/:id", UserController.updateProfile);
+router.put("/:id", UserController.updateUserProfile);
 // Delete user account
-router.delete("/profile/:id", UserController.deleteAccount);
-
+router.delete("/:id", UserController.deleteUserAccount);
 module.exports = router;
+// Get user by ID

@@ -7,5 +7,7 @@ const v = require("../controllers/ValidationController");
 router.post("/register", v.registerValidator, AuthController.register);
 // User login
 router.post("/login", v.loginValidator, AuthController.login);
+// User logout
+router.post("/logout", AuthController.logout);
 
 module.exports = router;
