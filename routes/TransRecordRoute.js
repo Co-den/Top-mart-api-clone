@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const AuthController = require("../auth/AuthController");
+const AuthController = require("../auth/authController");
 const TransRecordController = require("../controllers/TransRecordController");
 
 // Protect all routes after this middleware
