@@ -14,9 +14,10 @@ const purchaseRoutes = require("./routes/PurchaseRoute");
 
 // Enable CORS
 const allowedOrigins = [
-  "http://localhost:3000", // local dev
+  "http://localhost:3000",
   "http://localhost:3000/api/auth/register",
   "http://localhost:3000/api/auth/login",
+  "https://top-mart-api.onrender.com",
 ];
 
 app.use(
