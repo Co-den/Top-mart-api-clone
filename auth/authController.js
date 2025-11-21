@@ -92,20 +92,30 @@ exports.register = async (req, res) => {
     newUser.account = account._id;
     await newUser.save({ validateBeforeSave: false });
 
-    // Send welcome email but don't fail the whole request if email sending errors out
+    // Send welcome email in background (fire-and-forget) so registration is fast
     try {
       const verificationUrl = `${req.protocol}://${req.get(
         "host"
       )}/verify-email?token=${verificationToken}`;
 
-      await sendSignupEmail(newUser.email, {
+      // Do not await -- let it run in the background. Log errors when they occur.
+      sendSignupEmail(newUser.email, {
         name: newUser.fullName,
         verificationUrl,
-      });
+      })
+        .then(() => {
+          console.log(`Signup email sent to ${newUser.email}`);
+        })
+        .catch((emailErr) => {
+          console.error(
+            "Failed to send signup email (background):",
+            emailErr.message || emailErr
+          );
+        });
     } catch (emailErr) {
-      // log the error and continue
+      // defensive: if something synchronously throws, log and continue
       console.error(
-        "Failed to send signup email:",
+        "Failed to queue signup email:",
         emailErr.message || emailErr
       );
     }
