@@ -18,6 +18,7 @@ const allowedOrigins = [
   "http://localhost:3000/api/auth/register",
   "http://localhost:3000/api/auth/login",
   "https://top-mart-api.onrender.com",
+  "https://top-dmtxpqmdq-codens-projects.vercel.app",
 ];
 
 app.use(
