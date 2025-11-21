@@ -15,7 +15,7 @@ const signToken = (id) => {
   });
 };
 
-const createSendToken = (user, statusCode, req, res) => {
+const createSendToken = (user, statusCode, req, res, account = null) => {
   const token = signToken(user._id);
 
   res.cookie("jwt", token, {
@@ -28,26 +28,57 @@ const createSendToken = (user, statusCode, req, res) => {
   // Remove password from output
   user.password = undefined;
 
-  res.status(statusCode).json({
+  const responsePayload = {
     status: "success",
     token,
     data: {
       user,
     },
-  });
+  };
+
+  if (account) {
+    responsePayload.data.account = {
+      id: account._id,
+      balance: account.balance,
+      bonus: account.bonus,
+      currency: account.currency,
+    };
+  }
+
+  res.status(statusCode).json(responsePayload);
 };
 
 // User signup
 exports.register = async (req, res) => {
   try {
+    // basic required fields validation
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      password,
+      confirmPassword,
+      referralCode,
+    } = req.body;
+    if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
     const newUser = await User.create({
-      fullName: req.body.fullName,
-      email: req.body.email,
-      phoneNumber: req.body.phoneNumber,
-      password: req.body.password,
-      confirmPassword: req.body.confirmPassword,
-      referralCode: req.body.referralCode,
+      fullName,
+      email,
+      phoneNumber,
+      password,
+      confirmPassword,
+      referralCode,
     });
+
+    // generate an email verification token (plain token returned for email link)
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    // store hashed token + expiry on user model if your model expects that; here we save plain token fields
+    newUser.emailVerificationToken = verificationToken;
+    newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    await newUser.save({ validateBeforeSave: false });
 
     // Create account with signup bonus
     const account = await Account.create({
@@ -61,15 +92,34 @@ exports.register = async (req, res) => {
     newUser.account = account._id;
     await newUser.save({ validateBeforeSave: false });
 
-    // Send welcome email
-    await sendSignupEmail(newUser.email, {
-      name: newUser.fullName,
-      verificationUrl: `${req.protocol}://${req.get(
+    // Send welcome email but don't fail the whole request if email sending errors out
+    try {
+      const verificationUrl = `${req.protocol}://${req.get(
         "host"
-      )}/verify-email?token=${newUser.emailVerificationToken}`,
-    });
+      )}/verify-email?token=${verificationToken}`;
+
+      await sendSignupEmail(newUser.email, {
+        name: newUser.fullName,
+        verificationUrl,
+      });
+    } catch (emailErr) {
+      // log the error and continue
+      console.error(
+        "Failed to send signup email:",
+        emailErr.message || emailErr
+      );
+    }
+
     createSendToken(newUser, 201, req, res, account);
   } catch (error) {
+    // handle duplicate key (unique) errors and validation errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ message: `${field} already in use` });
+    }
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
     res.status(500).json({ message: error.message });
   }
 };
