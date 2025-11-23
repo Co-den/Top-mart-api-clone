@@ -1,8 +1,8 @@
 // routes/bankRoutes.js
 const express = require("express");
 const router = express.Router();
-const { setBankAccount } = require("../controllers/bankController");
-const AuthController = require("../middleware/authMiddleware");
+const { setBankAccount } = require("../controllers/BankAccountController");
+const AuthController = require("../auth/authController");
 const { resolveAccount } = require("../controllers/BankAccountController");
 
 router.use(AuthController.protect);
