@@ -46,7 +46,7 @@ exports.deleteUserAccount = async (req, res) => {
 exports.getCurrentUser = async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
-      .select("phoneNumber uniqueId")
+      .select("phoneNumber uniqueId bankAccount")
       .populate({ path: "account", select: "balance" });
 
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -55,6 +55,7 @@ exports.getCurrentUser = async (req, res) => {
       phone: user.phoneNumber,
       uniqueId: user.uniqueId,
       balance: user.account?.balance ?? 0,
+      bankAccount: user.bankAccount ?? null,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
