@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const WithdrawController = require("../controllers/WithdrawController");
+const WithdrawController = require("../controllers/WithdrawalController");
 const AuthController = require("../auth/authController");
 
 
