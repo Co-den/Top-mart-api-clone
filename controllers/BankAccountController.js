@@ -1,4 +1,7 @@
 const axios = require("axios");
+const dotenv = require("dotenv");
+
+dotenv.config({ path: "./config.env" });
 
 exports.resolveAccount = async (req, res) => {
   try {
