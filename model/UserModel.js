@@ -9,7 +9,7 @@ const generateUniqueId = () => {
   ).join("");
   const number = Math.floor(1000 + Math.random() * 9000);
   return `${letters}${number}`;
-}
+};
 
 const userSchema = new mongoose.Schema({
   fullName: {
@@ -60,6 +60,11 @@ const userSchema = new mongoose.Schema({
   },
   account: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
   uniqueId: { type: String, unique: true, default: generateUniqueId },
+  bankAccount: {
+    bankName: { type: String },
+    accountNumber: { type: String },
+    accountName: { type: String },
+  },
 });
 
 userSchema.pre("save", async function (next) {

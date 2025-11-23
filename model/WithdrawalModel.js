@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-
 const withdrawalSchema = new mongoose.Schema(
   {
     account: {
@@ -16,6 +15,9 @@ const withdrawalSchema = new mongoose.Schema(
       enum: ["pending", "success", "failed"],
       default: "pending",
     },
+    bankName: String,
+    accountNumber: String,
+    accountName: String,
     meta: { type: Object },
   },
   { timestamps: true }

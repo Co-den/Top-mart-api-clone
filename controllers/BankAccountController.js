@@ -1,37 +1,57 @@
-// controllers/bankController.js
-const axios = require("axios");
-const dotenv = require("dotenv");
-dotenv.config({ path: "./config.env" });
+const User = require("../model/UserModel");
 
-exports.resolveAccountName = async (req, res) => {
-  const { accountNumber, bankCode } = req.body;
- 
-  if (!accountNumber || !bankCode) {
-    return res.status(400).json({
-      success: false,
-      message: "Account number and bank code required",
-    });
-  }
 
+//set bank account
+exports.setBankAccount = async (req, res) => {
   try {
-    const response = await axios.get(
-      `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
+    const { bankName, accountNumber, accountName } = req.body;
+
+    if (!bankName || !accountNumber || !accountName) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
       {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        },
-      }
-    );
-    res
-      .status(200)
-      .json({ success: true, accountName: response.data.data.account_name });
-  } catch (error) {
-    console.error(
-      "Paystack resolve error:",
-      error.response?.data || error.message
-    );
-    res
-      .status(500)
-      .json({ success: false, message: "Unable to fetch account name" });
+        bankAccount: { bankName, accountNumber, accountName },
+      },
+      { new: true }
+    ).select("bankAccount");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({
+      message: "Bank account updated successfully",
+      bankAccount: user.bankAccount,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+//update bank details
+exports.updateBankDetails = async (req, res) => {
+  try {
+    const { bankName, accountNumber, accountName } = req.body;
+
+    if (!bankName || !accountNumber || !accountName) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { bankAccount: { bankName, accountNumber, accountName } },
+      { new: true }
+    ).select("bankAccount");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json({
+      message: "Bank details updated successfully",
+      bankAccount: user.bankAccount,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

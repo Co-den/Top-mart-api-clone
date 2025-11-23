@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const userRoutes = require("./routes/UserRoute");
 const authRoutes = require("./routes/AuthRoute");
 const transactionRoutes = require("./routes/TransactionRoutes");
+const bankRoutes = require("./routes/BankRoutes");
 const { paystackWebhook } = require("./controllers/PaystackWebhookController");
 const transRecordRoutes = require("./routes/TransRecordRoute");
 const productRoutes = require("./routes/ProductRoute");
@@ -65,6 +66,7 @@ mongoose
 //app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/bank", bankRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/transrecords", transRecordRoutes);
 app.use("/api/products", productRoutes);
