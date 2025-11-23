@@ -31,27 +31,35 @@ exports.setBankAccount = async (req, res) => {
 
 
 //update bank details
-exports.updateBankDetails = async (req, res) => {
-  try {
-    const { bankName, accountNumber, accountName } = req.body;
+// controllers/bankController.js
+const axios = require("axios");
 
-    if (!bankName || !accountNumber || !accountName) {
-      return res.status(400).json({ message: "All fields are required" });
+exports.resolveAccount = async (req, res) => {
+  try {
+    const { bankCode, accountNumber } = req.body;
+
+    if (!bankCode || !accountNumber) {
+      return res.status(400).json({ message: "Bank code and account number required" });
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { bankAccount: { bankName, accountNumber, accountName } },
-      { new: true }
-    ).select("bankAccount");
-
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const response = await axios.get(
+      `https://api.paystack.co/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
 
     res.status(200).json({
-      message: "Bank details updated successfully",
-      bankAccount: user.bankAccount,
+      status: "success",
+      message: "Account resolved successfully",
+      accountName: response.data.data.account_name,
+      accountNumber: response.data.data.account_number,
+      bankCode,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.response?.data?.message ?? err.message });
   }
 };
+
