@@ -7,6 +7,6 @@ const AuthController = require("../middleware/authMiddleware");
 router.use(AuthController.protect);
 
 router.post("/bank-account", setBankAccount);
-router.put("/bank-account", updateBankDetails);
+router.put("/setbank", updateBankDetails);
 
 module.exports = router;
