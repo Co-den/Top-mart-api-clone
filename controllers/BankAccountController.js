@@ -35,3 +35,21 @@ exports.resolveAccount = async (req, res) => {
       .json({ message: err.response?.data?.message ?? err.message });
   }
 };
+
+exports.getBanks = async (req, res) => {
+  try {
+    const response = await axios.get("https://api.paystack.co/bank", {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+    });
+
+    res.status(200).json({
+      status: "success",
+      banks: response.data.data,
+    });
+  } catch (err) {
+    console.error("Bank list error:", err.response?.data || err.message);
+    res.status(500).json({ message: "Failed to fetch banks" });
+  }
+};

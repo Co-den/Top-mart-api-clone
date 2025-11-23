@@ -7,5 +7,6 @@ const bankController = require("../controllers/BankAccountController");
 router.use(AuthController.protect);
 
 router.post("/bank-account", bankController.resolveAccount);
+router.get("/banks", bankController.getBanks);
 
 module.exports = router;
