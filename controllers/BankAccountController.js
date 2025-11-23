@@ -1,37 +1,3 @@
-const User = require("../model/UserModel");
-
-
-//set bank account
-exports.setBankAccount = async (req, res) => {
-  try {
-    const { bankName, accountNumber, accountName } = req.body;
-
-    if (!bankName || !accountNumber || !accountName) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      {
-        bankAccount: { bankName, accountNumber, accountName },
-      },
-      { new: true }
-    ).select("bankAccount");
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    res.status(200).json({
-      message: "Bank account updated successfully",
-      bankAccount: user.bankAccount,
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-
-//update bank details
-// controllers/bankController.js
 const axios = require("axios");
 
 exports.resolveAccount = async (req, res) => {
@@ -39,7 +5,9 @@ exports.resolveAccount = async (req, res) => {
     const { bankCode, accountNumber } = req.body;
 
     if (!bankCode || !accountNumber) {
-      return res.status(400).json({ message: "Bank code and account number required" });
+      return res
+        .status(400)
+        .json({ message: "Bank code and account number required" });
     }
 
     const response = await axios.get(
@@ -59,7 +27,8 @@ exports.resolveAccount = async (req, res) => {
       bankCode,
     });
   } catch (err) {
-    res.status(500).json({ message: err.response?.data?.message ?? err.message });
+    res
+      .status(500)
+      .json({ message: err.response?.data?.message ?? err.message });
   }
 };
-

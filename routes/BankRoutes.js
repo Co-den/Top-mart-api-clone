@@ -1,13 +1,11 @@
 // routes/bankRoutes.js
 const express = require("express");
 const router = express.Router();
-const { setBankAccount } = require("../controllers/BankAccountController");
 const AuthController = require("../auth/authController");
-const { resolveAccount } = require("../controllers/BankAccountController");
+const bankController = require("../controllers/BankAccountController");
 
 router.use(AuthController.protect);
 
-router.post("/bank-account", setBankAccount);
-router.put("/setbank", resolveAccount);
+router.post("/bank-account", bankController.resolveAccount);
 
 module.exports = router;
