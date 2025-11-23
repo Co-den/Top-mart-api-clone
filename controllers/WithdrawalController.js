@@ -1,6 +1,6 @@
 const Withdrawal = require("../model/WithdrawalModel.js");
 const Account = require("../model/AccountModel.js");
-const User = require("../model/User.js");
+const User = require("../model/UserModel.js");
 
 exports.withdrawFunds = async (req, res) => {
   try {
