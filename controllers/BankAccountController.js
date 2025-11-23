@@ -1,5 +1,6 @@
 const axios = require("axios");
 const dotenv = require("dotenv");
+const User = require("../model/UserModel");
 
 dotenv.config({ path: "./config.env" });
 
@@ -51,5 +52,46 @@ exports.getBanks = async (req, res) => {
   } catch (err) {
     console.error("Bank list error:", err.response?.data || err.message);
     res.status(500).json({ message: "Failed to fetch banks" });
+  }
+};
+
+exports.updateBankDetails = async (req, res) => {
+  try {
+    const { bankName, accountNumber, accountName } = req.body;
+
+    if (!bankName || !accountNumber || !accountName) {
+      return res
+        .status(400)
+        .json({
+          message: "Bank name, account number and account name are required",
+        });
+    }
+
+    const userId = req.user.id;
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        bankAccount: {
+          bankName,
+          accountNumber,
+          accountName,
+        },
+      },
+      { new: true }
+    ).select("bankAccount");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Bank details updated successfully",
+      bankAccount: user.bankAccount,
+    });
+  } catch (err) {
+    console.error("Update bank details error:", err.message);
+    res.status(500).json({ message: err.message });
   }
 };

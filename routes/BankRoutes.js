@@ -8,5 +8,6 @@ router.use(AuthController.protect);
 
 router.post("/bank-account", bankController.resolveAccount);
 router.get("/banks", bankController.getBanks);
+router.post("/update-account", bankController.updateBankDetails);
 
 module.exports = router;
