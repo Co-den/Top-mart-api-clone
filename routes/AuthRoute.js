@@ -10,4 +10,10 @@ router.post("/login", v.loginValidator, AuthController.login);
 // User logout
 router.post("/logout", AuthController.logout);
 
+// Update password
+router.post(
+  "/updatePassword",
+  AuthController.updatePassword
+);
+
 module.exports = router;
