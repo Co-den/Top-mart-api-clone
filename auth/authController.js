@@ -222,7 +222,7 @@ exports.isLoggedIn = async (req, res, next) => {
   next();
 };
 
-exports.updatePassword = catchAsync(async (req, res, next) => {
+exports.updatePassword = async (req, res, next) => {
   const user = await User.findById(req.user.id).select("+password");
 
   if (!(await user.currentPassword(req.body.passwordCurrent, user.password))) {
@@ -234,4 +234,4 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   createSendToken(user, 200, req, res);
-});
+};
