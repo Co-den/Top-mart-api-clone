@@ -6,6 +6,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const userRoutes = require("./routes/UserRoute");
 const authRoutes = require("./routes/AuthRoute");
+const adminRoutes = require("./routes/AdminRoute");
 const transactionRoutes = require("./routes/TransactionRoutes");
 const bankRoutes = require("./routes/BankRoutes");
 const withdrawRoutes = require("./routes/WithdrawRoute");
@@ -23,7 +24,7 @@ const allowedOrigins = [
   "https://top-dmtxpqmdq-codens-projects.vercel.app",
   "https://top-m-gvue-git-main-codens-projects.vercel.app",
   "https://top-m-gvue.vercel.app",
-  "https://top-mart-api.onrender.com/api/auth/register"
+  "https://top-mart-api.onrender.com/api/auth/register",
 ];
 
 app.use(
@@ -47,8 +48,6 @@ app.use(express.json());
 // ensure cookie-parser is registered before your auth middleware/routes
 app.use(cookieParser());
 
-// ...existing code: routes/middleware registration ...
-// ...existing code...
 
 // Configure environment variables
 dotenv.config({ path: "./config.env" });
@@ -67,6 +66,7 @@ mongoose
 //app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/bank", bankRoutes);
 app.use("/api/withdrawal", withdrawRoutes);
 app.use("/api/transactions", transactionRoutes);

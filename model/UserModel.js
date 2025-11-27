@@ -65,6 +65,11 @@ const userSchema = new mongoose.Schema({
     accountNumber: { type: String },
     accountName: { type: String },
   },
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+  },
 });
 
 userSchema.pre("save", async function (next) {
