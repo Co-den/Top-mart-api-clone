@@ -151,7 +151,7 @@ exports.login = async (req, res) => {
   if (!user || !(await user.currentPassword(password, user.password))) {
     return res.status(401).json({
       status: "fail",
-      message: "Incorrect email or password",
+      message: "Incorrect phoneNumber or password",
     });
   }
 
