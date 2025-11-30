@@ -14,7 +14,7 @@ router.post(
   "/:depositId/proof",
   userAuth.protect,
   upload.single("file"),
-  dC.submitProof
+  dC.uploadProof
 );
 
 // Get deposit by ID

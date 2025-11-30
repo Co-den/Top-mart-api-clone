@@ -40,22 +40,35 @@ exports.initializeDeposit = async (req, res) => {
   }
 };
 
-exports.submitProof = async (req, res) => {
+exports.uploadProof = async (req, res) => {
   try {
     const { depositId } = req.params;
-    const { fileUrl } = req.body;
+    const { senderName } = req.body;
 
-    const deposit = await Deposit.findByIdAndUpdate(
-      depositId,
-      { proofFileUrl: fileUrl, status: "awaiting_approval" },
-      { new: true }
-    );
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
-    res.json({ message: "Proof submitted, awaiting admin approval", deposit });
+    const deposit = await Deposit.findById(depositId);
+    if (!deposit) {
+      return res.status(404).json({ message: "Deposit not found" });
+    }
+
+    deposit.proof = {
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      senderName,
+    };
+    deposit.status = "proof-submitted";
+    await deposit.save();
+
+    res.json({ message: "Proof submitted successfully", deposit });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("uploadProof error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 exports.approveDeposit = async (req, res) => {
   try {
