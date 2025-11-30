@@ -15,7 +15,7 @@ const productRoutes = require("./routes/ProductRoute");
 const purchaseRoutes = require("./routes/PurchaseRoute");
 const investmentRoutes = require("./routes/InvestmentRoute");
 const paymentProofRoutes = require("./routes/PopRoute");
-const { startMaturityJob } = require("./jobs/maturity");
+const { startMaturityJob } = require("./jobs/Maturity");
 
 // Enable CORS
 const allowedOrigins = [
