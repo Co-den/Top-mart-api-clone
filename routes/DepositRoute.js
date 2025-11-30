@@ -13,6 +13,9 @@ router.post("/:depositId/proof", userAuth.protect, dC.submitProof);
 // Get deposit by ID
 router.get("/:depositId", userAuth.protect, dC.getDeposit);
 
+// Get all deposits - admin only
+router.get("/", adminAuthser.protect, dC.getAllDeposits);
+
 // Admin approves/rejects
 router.patch("/:depositId/approve", adminAuthser.protect, dC.approveDeposit);
 router.patch("/:depositId/reject", adminAuthser.protect, dC.rejectDeposit);

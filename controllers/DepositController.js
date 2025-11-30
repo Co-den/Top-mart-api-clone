@@ -108,11 +108,10 @@ exports.getDeposit = async (req, res) => {
       return res.status(400).json({ message: "Invalid deposit ID" });
     }
 
-    const deposit = await Deposit.findById(depositId)
-      .populate({
-        path: "user",
-        populate: { path: "bankAccount" }
-      });
+    const deposit = await Deposit.findById(depositId).populate({
+      path: "user",
+      populate: { path: "bankAccount" },
+    });
 
     if (!deposit) {
       return res.status(404).json({ message: "Deposit not found" });
@@ -124,3 +123,14 @@ exports.getDeposit = async (req, res) => {
   }
 };
 
+//get all deposits - admin only
+exports.getAllDeposits = async (req, res) => {
+  try {
+    const deposits = await Deposit.find()
+      .populate("user", "name email")
+      .populate("account", "balance currency");
+    res.json({ deposits });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
