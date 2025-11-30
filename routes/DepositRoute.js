@@ -1,6 +1,8 @@
 // routes/depositRoutes.js
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
 const dC = require("../controllers/DepositController");
 const adminAuthser = require("../auth/adminAuthController");
 const userAuth = require("../auth/authController");
@@ -8,7 +10,12 @@ const userAuth = require("../auth/authController");
 // User initiates deposit
 router.post("/initiate", userAuth.protect, dC.initializeDeposit);
 // User submits proof
-router.post("/:depositId/proof", userAuth.protect, dC.submitProof);
+router.post(
+  "/:depositId/proof",
+  userAuth.protect,
+  upload.single("file"),
+  dC.submitProof
+);
 
 // Get deposit by ID
 router.get("/:depositId", userAuth.protect, dC.getDeposit);
