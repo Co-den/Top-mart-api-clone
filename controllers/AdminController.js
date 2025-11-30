@@ -4,11 +4,11 @@ const bcrypt = require("bcrypt");
 const dotenv = require("dotenv");
 dotenv.config({ path: "./config.env" });
 
-const jwtCookieExpiresIn = Number(process.env.JWT_COOKIE_EXPIRES_IN);
+const jwtCookieExpiresIn = Number(process.env.ADMIN_COOKIE_EXPIRES_IN) || 90;
 
 const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES,
+  return jwt.sign({ id }, process.env.ADMIN_JWT_SECRET, {
+    expiresIn: process.env.ADMIN_JWT_EXPIRES,
   });
 };
 

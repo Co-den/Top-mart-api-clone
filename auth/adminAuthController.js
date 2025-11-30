@@ -1,4 +1,6 @@
 const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+dotenv.config({ path: "./config.env" });
 
 exports.protect = (req, res, next) => {
   // accept token from cookie OR Authorization header
@@ -16,7 +18,7 @@ exports.protect = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET);
     req.admin = decoded;
     return next();
   } catch (err) {
