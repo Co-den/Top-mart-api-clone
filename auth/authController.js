@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
 const dotenv = require("dotenv");
 dotenv.config({ path: "./config.env" });
-const { sendSignupEmail } = require("../utils/email");
+const { sendSignupEmail, sendAccountCreationEmail } = require("../utils/email");
 
 const jwtCookieExpiresIn = Number(process.env.JWT_COOKIE_EXPIRES_IN);
 
@@ -119,6 +119,19 @@ exports.register = async (req, res) => {
         emailErr.message || emailErr
       );
     }
+    sendAccountCreationEmail(newUser.email, {
+      name: newUser.fullName,
+      accountId: account._id,
+    })
+      .then(() => {
+        console.log(`Account creation email sent to ${newUser.email}`);
+      })
+      .catch((emailErr) => {
+        console.error(
+          "Failed to send account creation email (background):",
+          emailErr.message || emailErr
+        );
+      });
 
     createSendToken(newUser, 201, req, res, account);
   } catch (error) {
@@ -170,9 +183,9 @@ exports.logout = (req, res) => {
   });
 };
 
+
 // Protect routes
-exports.protect = (req, res, next) => {
-  // accept token from cookie OR Authorization header
+exports.protect = async (req, res, next) => {
   const tokenFromCookie = req.cookies?.jwt;
   const authHeader = req.headers?.authorization;
   const tokenFromHeader =
@@ -188,8 +201,15 @@ exports.protect = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // or fetch user from DB if needed
-    return next();
+
+    // Fetch full user from DB
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = user; // attach full user document
+    next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }

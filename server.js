@@ -7,13 +7,15 @@ const cookieParser = require("cookie-parser");
 const userRoutes = require("./routes/UserRoute");
 const authRoutes = require("./routes/AuthRoute");
 const adminRoutes = require("./routes/AdminRoute");
-const transactionRoutes = require("./routes/TransactionRoutes");
 const bankRoutes = require("./routes/BankRoutes");
 const withdrawRoutes = require("./routes/WithdrawRoute");
 const { paystackWebhook } = require("./controllers/PaystackWebhookController");
-const transRecordRoutes = require("./routes/TransRecordRoute");
+const depositRoutes = require("./routes/DepositRoute");
 const productRoutes = require("./routes/ProductRoute");
 const purchaseRoutes = require("./routes/PurchaseRoute");
+const investmentRoutes = require("./routes/InvestmentRoute");
+const paymentProofRoutes = require("./routes/PopRoute");
+const { startMaturityJob } = require("./jobs/maturity");
 
 // Enable CORS
 const allowedOrigins = [
@@ -48,7 +50,6 @@ app.use(express.json());
 // ensure cookie-parser is registered before your auth middleware/routes
 app.use(cookieParser());
 
-
 // Configure environment variables
 dotenv.config({ path: "./config.env" });
 
@@ -68,11 +69,13 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/bank", bankRoutes);
+app.use("/api/deposits", depositRoutes);
 app.use("/api/withdrawal", withdrawRoutes);
-app.use("/api/transactions", transactionRoutes);
-app.use("/api/transrecords", transRecordRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/purchases", purchaseRoutes);
+app.use("/api/investments", investmentRoutes);
+app.use("/api/payment-proofs", paymentProofRoutes);
+startMaturityJob();
 
 // Paystack webhook route
 app.post(

@@ -1,23 +1,32 @@
 const mongoose = require("mongoose");
 
-
 const depositSchema = new mongoose.Schema(
   {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     account: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Account",
       required: true,
     },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     amount: { type: Number, required: true },
-    reference: { type: String, index: true, unique: true, sparse: true },
+    reference: String,
+    proofFileUrl: String,
     status: {
       type: String,
-      enum: ["pending", "success", "failed"],
+      enum: [
+        "pending",
+        "awaiting_approval",
+        "successful",
+        "rejected",
+        "failed",
+      ],
       default: "pending",
     },
-    meta: { type: Object },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
+    reason: String,
+    meta: Object,
   },
   { timestamps: true }
 );
+
 module.exports = mongoose.model("Deposit", depositSchema);

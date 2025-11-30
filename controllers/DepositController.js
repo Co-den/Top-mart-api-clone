@@ -1,18 +1,18 @@
-const axios = require("axios");
-const Deposit = require("../model/DepositModel");
 const Account = require("../model/AccountModel");
+const Deposit = require("../model/DepositModel");
+const mongoose = require("mongoose");
 
-// Initialize deposit
 exports.initializeDeposit = async (req, res) => {
   try {
     const user = req.user;
-    const { amount } = req.body;
+    if (!user)
+      return res.status(401).json({ message: "User not authenticated" });
 
+    const { amount } = req.body;
     if (!amount || Number(amount) <= 0) {
       return res.status(400).json({ message: "Invalid amount" });
     }
 
-    // Find or create account
     let account = await Account.findOne({ user: user._id });
     if (!account) {
       account = await Account.create({
@@ -23,7 +23,6 @@ exports.initializeDeposit = async (req, res) => {
       });
     }
 
-    // Create pending deposit
     const deposit = await Deposit.create({
       account: account._id,
       user: user._id,
@@ -31,101 +30,90 @@ exports.initializeDeposit = async (req, res) => {
       status: "pending",
     });
 
-    // Call Paystack (amount in kobo)
-    const kobo = Math.floor(Number(amount) * 100);
-    const response = await axios.post(
-      "https://api.paystack.co/transaction/initialize",
-      {
-        email: user.email,
-        amount: kobo,
-        metadata: {
-          depositId: deposit._id.toString(),
-          accountId: account._id.toString(),
-        },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.data.status) {
-      deposit.status = "failed";
-      deposit.meta = response.data;
-      await deposit.save();
-      return res
-        .status(400)
-        .json({ message: response.data.message || "Paystack init failed" });
-    }
-
-    const { authorization_url, reference } = response.data.data;
-    deposit.reference = reference;
-    deposit.meta = response.data.data;
-    await deposit.save();
-
-    return res.json({ authorization_url, reference });
+    // If you want to skip Paystack for now:
+    return res.json({ message: "Deposit initiated", deposit });
   } catch (err) {
-    console.error("init deposit err", err.response?.data || err.message);
-    return res.status(500).json({ message: "Server error" });
+    console.error("init deposit err", err);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 };
 
-
-exports.verifyDeposit = async (req, res) => {
+exports.submitProof = async (req, res) => {
   try {
-    const { reference } = req.query; // Paystack sends this back after payment
+    const { depositId } = req.params;
+    const { fileUrl } = req.body;
 
-    if (!reference) {
-      return res.status(400).json({ message: "Reference is required" });
-    }
-
-    // Verify with Paystack
-    const response = await axios.get(
-      `https://api.paystack.co/transaction/verify/${reference}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        },
-      }
+    const deposit = await Deposit.findByIdAndUpdate(
+      depositId,
+      { proofFileUrl: fileUrl, status: "awaiting_approval" },
+      { new: true }
     );
 
-    const data = response.data;
-    if (!data.status || data.data.status !== "success") {
-      return res.status(400).json({ message: "Payment not successful" });
-    }
+    res.json({ message: "Proof submitted, awaiting admin approval", deposit });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-    // Find deposit record
-    const deposit = await Deposit.findOne({ reference });
-    if (!deposit) {
-      return res.status(404).json({ message: "Deposit record not found" });
-    }
+exports.approveDeposit = async (req, res) => {
+  try {
+    const { depositId } = req.params;
+    const adminId = req.admin.id;
 
-    // Prevent double-crediting
-    if (deposit.status === "successful") {
-      return res.json({ message: "Deposit already processed" });
-    }
+    const deposit = await Deposit.findById(depositId).populate("account");
+    if (!deposit) return res.status(404).json({ message: "Deposit not found" });
 
-    // Mark deposit successful
     deposit.status = "successful";
+    deposit.reviewedBy = adminId;
     await deposit.save();
 
-    // Update account balance
-    const account = await Account.findById(deposit.account);
-    if (!account) {
-      return res.status(404).json({ message: "Account not found" });
-    }
+    deposit.account.balance += deposit.amount;
+    await deposit.account.save();
 
-    account.balance += deposit.amount;
-    await account.save();
-
-    return res.json({
-      message: "Deposit verified and balance updated",
-      newBalance: account.balance,
+    res.json({
+      message: "Deposit approved and balance updated",
+      newBalance: deposit.account.balance,
     });
   } catch (err) {
-    console.error("verify deposit err", err.response?.data || err.message);
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.rejectDeposit = async (req, res) => {
+  try {
+    const { depositId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.admin.id;
+
+    const deposit = await Deposit.findByIdAndUpdate(
+      depositId,
+      { status: "rejected", reviewedBy: adminId, reason },
+      { new: true }
+    );
+
+    res.json({ message: "Deposit rejected", deposit });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//get deposit by id
+exports.getDeposit = async (req, res) => {
+  try {
+    const { depositId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(depositId)) {
+      return res.status(400).json({ message: "Invalid deposit ID" });
+    }
+
+    const deposit = await Deposit.findById(depositId).populate("user account");
+    if (!deposit) {
+      return res.status(404).json({ message: "Deposit not found" });
+    }
+
+    res.json({ deposit });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
