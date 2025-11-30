@@ -103,11 +103,17 @@ exports.rejectDeposit = async (req, res) => {
 exports.getDeposit = async (req, res) => {
   try {
     const { depositId } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(depositId)) {
       return res.status(400).json({ message: "Invalid deposit ID" });
     }
 
-    const deposit = await Deposit.findById(depositId).populate("user account");
+    const deposit = await Deposit.findById(depositId)
+      .populate({
+        path: "user",
+        populate: { path: "bankAccount" }
+      });
+
     if (!deposit) {
       return res.status(404).json({ message: "Deposit not found" });
     }
@@ -117,3 +123,4 @@ exports.getDeposit = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
