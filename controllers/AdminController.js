@@ -36,7 +36,6 @@ exports.registerAdmin = async (req, res) => {
     const {
       fullName,
       email,
-      phoneNumber,
       password,
       confirmPassword,
       accessCode,
@@ -44,7 +43,6 @@ exports.registerAdmin = async (req, res) => {
     if (
       !fullName ||
       !email ||
-      !phoneNumber ||
       !password ||
       !confirmPassword ||
       !accessCode
