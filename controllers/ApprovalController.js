@@ -6,12 +6,16 @@ const { sendDepositEmail } = require("../services/NotifyUser");
 
 exports.getPendingUsers = async (req, res) => {
   try {
-    const proofs = await Deposit.find({ status: "pending" }).populate(
-      "userId"
-    );
-    res.json(proofs);
+    const deposits = await Deposit.find({ status: "pending" })
+      .populate({
+        path: "user",
+        populate: { path: "bankAccount" },
+      })
+      .populate("account");
+
+    res.json(deposits);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -90,4 +94,3 @@ exports.rejectUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
