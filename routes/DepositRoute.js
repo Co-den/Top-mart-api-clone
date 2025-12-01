@@ -9,6 +9,7 @@ const userAuth = require("../auth/authController");
 
 // User initiates deposit
 router.post("/initiate", userAuth.protect, dC.initializeDeposit);
+
 // User submits proof
 router.post(
   "/:depositId/proof",
