@@ -10,10 +10,10 @@ router.get("/me", UserController.getCurrentUser);
 // Get all users
 router.get("/", UserController.getAllUsers);
 // Get user by ID
-router.get("/:id/user", UserController.getUserById);
+router.get("/:id", UserController.getUserById);
 // Update user profile
-router.put("/:id/user", UserController.updateUserProfile);
+router.put("/:id", UserController.updateUserProfile);
 // Delete user account
-router.delete("/:id/user", UserController.deleteUserAccount);
+router.delete("/:id", UserController.deleteUserAccount);
 module.exports = router;
 
