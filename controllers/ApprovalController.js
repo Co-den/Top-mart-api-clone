@@ -1,12 +1,12 @@
 const User = require("../model/UserModel");
-const PaymentProof = require("../model/PaymentProofModel");
+const Deposit = require("../model/DepositModel");
 const Investment = require("../model/InvestmentModel");
 const Plan = require("../model/PlanModel");
 const { sendDepositEmail } = require("../services/NotifyUser");
 
 exports.getPendingUsers = async (req, res) => {
   try {
-    const proofs = await PaymentProof.find({ status: "pending" }).populate(
+    const proofs = await Deposit.find({ status: "pending" }).populate(
       "userId"
     );
     res.json(proofs);
@@ -28,7 +28,7 @@ exports.approveUser = async (req, res) => {
     );
 
     // Approve payment proof
-    const proof = await PaymentProof.findOneAndUpdate(
+    const proof = await Deposit.findOneAndUpdate(
       { userId },
       { status: "approved", reviewedBy: adminId },
       { new: true }
@@ -80,7 +80,7 @@ exports.rejectUser = async (req, res) => {
     const adminId = req.admin.id;
 
     await User.findByIdAndUpdate(userId, { status: "rejected" });
-    await PaymentProof.findOneAndUpdate(
+    await Deposit.findOneAndUpdate(
       { userId },
       { status: "rejected", reviewedBy: adminId, reason }
     );
@@ -91,25 +91,3 @@ exports.rejectUser = async (req, res) => {
   }
 };
 
-exports.submitProof = async (req, res) => {
-  try {
-    const { planId, amount, transactionId, receipt } = req.body;
-    const userId = req.user.id;
-
-    const proof = await PaymentProof.create({
-      userId,
-      planId,
-      amount,
-      transactionId,
-      receipt,
-      status: "pending",
-    });
-
-    res.json({
-      message: "Payment proof submitted, awaiting admin approval",
-      proof,
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};

@@ -1,6 +1,6 @@
 const Investment = require("../model/InvestmentModel");
 const Plan = require("../model/PlanModel");
-const User = require("../model/UserModel"); // assuming you have this
+const User = require("../model/UserModel");
 const cR = require("../services/Returns");
 const cUW = require("../services/CreditAccount");
 const { emailUser } = require("../services/NotifyUser");

@@ -60,11 +60,9 @@ exports.updateBankDetails = async (req, res) => {
     const { bankName, accountNumber, accountName } = req.body;
 
     if (!bankName || !accountNumber || !accountName) {
-      return res
-        .status(400)
-        .json({
-          message: "Bank name, account number and account name are required",
-        });
+      return res.status(400).json({
+        message: "Bank name, account number and account name are required",
+      });
     }
 
     const userId = req.user.id;

@@ -14,7 +14,7 @@ const depositRoutes = require("./routes/DepositRoute");
 const productRoutes = require("./routes/ProductRoute");
 const purchaseRoutes = require("./routes/PurchaseRoute");
 const investmentRoutes = require("./routes/InvestmentRoute");
-const paymentProofRoutes = require("./routes/PopRoute");
+const approvalRoutes = require("./routes/ApprovalRoute");
 const { startMaturityJob } = require("./jobs/Maturity");
 
 // Enable CORS
@@ -74,7 +74,7 @@ app.use("/api/withdrawal", withdrawRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/purchases", purchaseRoutes);
 app.use("/api/investments", investmentRoutes);
-app.use("/api/payment-proofs", paymentProofRoutes);
+app.use("/api/approval", approvalRoutes);
 startMaturityJob();
 
 // Paystack webhook route
