@@ -19,14 +19,15 @@ exports.getPendingUsers = async (req, res) => {
   }
 };
 
-exports.approveUser = async (req, res) => {
+exports.approveDeposit = async (req, res) => {
   try {
+    const { userId } = req.params;
     const { depositId } = req.params;
     const adminId = req.admin.id;
 
     // Approve user
     const user = await User.findByIdAndUpdate(
-      depositId,
+      userId,
       { status: "approved" },
       { new: true }
     );
@@ -77,13 +78,14 @@ exports.approveUser = async (req, res) => {
   }
 };
 
-exports.rejectUser = async (req, res) => {
+exports.rejectUserDeposit = async (req, res) => {
   try {
+    const { userId } = req.params;
     const { depositId } = req.params;
     const { reason } = req.body;
     const adminId = req.admin.id;
 
-    await User.findByIdAndUpdate(depositId, { status: "rejected" });
+    await User.findByIdAndUpdate(userId, { status: "rejected" });
     await Deposit.findOneAndUpdate(
       { _id: depositId },
       { status: "rejected", reviewedBy: adminId, reason }

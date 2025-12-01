@@ -19,7 +19,7 @@ router.patch(
 router.patch(
   "/:depositId/reject",
   adminAuth.protect,
-  approvalController.rejectDeposit
+  approvalController.rejectUserDeposit
 );
 
 module.exports = router;
