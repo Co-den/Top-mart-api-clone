@@ -21,19 +21,19 @@ exports.getPendingUsers = async (req, res) => {
 
 exports.approveUser = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { depositId } = req.params;
     const adminId = req.admin.id;
 
     // Approve user
     const user = await User.findByIdAndUpdate(
-      userId,
+      depositId,
       { status: "approved" },
       { new: true }
     );
 
     // Approve payment proof
     const proof = await Deposit.findOneAndUpdate(
-      { userId },
+      { _id: depositId },
       { status: "approved", reviewedBy: adminId },
       { new: true }
     );
@@ -79,17 +79,17 @@ exports.approveUser = async (req, res) => {
 
 exports.rejectUser = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { depositId } = req.params;
     const { reason } = req.body;
     const adminId = req.admin.id;
 
-    await User.findByIdAndUpdate(userId, { status: "rejected" });
+    await User.findByIdAndUpdate(depositId, { status: "rejected" });
     await Deposit.findOneAndUpdate(
-      { userId },
+      { _id: depositId },
       { status: "rejected", reviewedBy: adminId, reason }
     );
 
-    res.json({ message: "User rejected", userId, reason });
+    res.json({ message: "User rejected", depositId, reason });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
