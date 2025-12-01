@@ -33,20 +33,8 @@ const createSendToken = (admin, statusCode, req, res) => {
 
 exports.registerAdmin = async (req, res) => {
   try {
-    const {
-      fullName,
-      email,
-      password,
-      confirmPassword,
-      accessCode,
-    } = req.body;
-    if (
-      !fullName ||
-      !email ||
-      !password ||
-      !confirmPassword ||
-      !accessCode
-    ) {
+    const { fullName, email, password, confirmPassword, accessCode } = req.body;
+    if (!fullName || !email || !password || !confirmPassword || !accessCode) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -97,8 +85,10 @@ exports.verifyAdmin = async (req, res) => {
   if (!token) return res.status(401).json({ message: "Not authenticated" });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const admin = await Admin.findById(decoded.id).select("id email name role");
+    const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET);
+    const admin = await Admin.findById(decoded.id).select(
+      "id email fullName accessCode"
+    );
     if (!admin) return res.status(401).json({ message: "Admin not found" });
 
     res.json({
