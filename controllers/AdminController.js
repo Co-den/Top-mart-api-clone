@@ -33,8 +33,22 @@ const createSendToken = (admin, statusCode, req, res) => {
 
 exports.registerAdmin = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      password,
+      confirmPassword,
+      accessCode,
+    } = req.body;
+    if (
+      !fullName ||
+      !email ||
+      !phoneNumber ||
+      !password ||
+      !confirmPassword ||
+      !accessCode
+    ) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -44,7 +58,13 @@ exports.registerAdmin = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const newAdmin = new Admin({ name, email, passwordHash: hashedPassword });
+    const newAdmin = new Admin({
+      fullName,
+      email,
+      passwordHash: hashedPassword,
+      confirmPasswordHash: hashedPassword,
+      accessCode,
+    });
     await newAdmin.save();
 
     createSendToken(newAdmin, 201, req, res);

@@ -2,9 +2,11 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 
 const AdminSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  fullName: { type: String, required: true },
   email: { type: String, unique: true, required: true },
   passwordHash: { type: String, required: true },
+  confirmPasswordHash: { type: String, required: true },
+  accessCode: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
 });
 
