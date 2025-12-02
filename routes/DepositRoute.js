@@ -23,8 +23,7 @@ router.get("/:depositId", userAuth.protect, dC.getDeposit);
 
 // Get all deposits - admin only
 router.get("/", adminAuthser.protect, dC.getAllDeposits);
-// Get pending deposits - admin only
-router.get("/pending", adminAuthser.protect, dC.getPendingDeposits);
+
 
 // Admin approves/rejects
 router.patch("/:depositId/approve", adminAuthser.protect, dC.approveDeposit);
