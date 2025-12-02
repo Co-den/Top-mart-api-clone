@@ -96,7 +96,7 @@ exports.verifyAdmin = async (req, res) => {
       user: {
         id: admin._id,
         email: admin.email,
-        fullName: admin.name,
+        fullName: admin.fullName,
       },
     });
   } catch {
