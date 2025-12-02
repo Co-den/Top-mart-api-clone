@@ -1,4 +1,3 @@
-const User = require("../model/UserModel");
 const Deposit = require("../model/DepositModel");
 const Investment = require("../model/InvestmentModel");
 const Plan = require("../model/PlanModel");
@@ -21,17 +20,10 @@ exports.getPendingUsers = async (req, res) => {
 
 exports.approveDeposit = async (req, res) => {
   try {
-    const { userId } = req.params;
     const { depositId } = req.params;
     const adminId = req.admin.id;
 
-    // Approve user
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { status: "approved" },
-      { new: true }
-    );
-
+   
     // Approve payment proof
     const proof = await Deposit.findOneAndUpdate(
       { _id: depositId },
@@ -80,12 +72,12 @@ exports.approveDeposit = async (req, res) => {
 
 exports.rejectUserDeposit = async (req, res) => {
   try {
-    const { userId } = req.params;
+  
     const { depositId } = req.params;
     const { reason } = req.body;
     const adminId = req.admin.id;
 
-    await User.findByIdAndUpdate(userId, { status: "rejected" });
+    // Reject payment proof
     await Deposit.findOneAndUpdate(
       { _id: depositId },
       { status: "rejected", reviewedBy: adminId, reason }
