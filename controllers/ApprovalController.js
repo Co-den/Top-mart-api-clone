@@ -3,7 +3,7 @@ const Investment = require("../model/InvestmentModel");
 const Plan = require("../model/PlanModel");
 const User = require("../model/UserModel");
 const Account = require("../model/AccountModel");
-const { sendDepositEmail } = require("../services/NotifyUser");
+const { emailUser } = require("../services/NotifyUser");
 
 exports.getPendingUsers = async (req, res) => {
   try {
@@ -95,8 +95,8 @@ exports.approveDeposit = async (req, res) => {
       }
     }
 
-    // Notify user in background (fire-and-forget)
-    sendDepositEmail(user.email, {
+    // Notify user in background
+    emailUser(user.email, {
       amount: proof.amount,
       transactionId: proof._id,
       newBalance: account.balance,
