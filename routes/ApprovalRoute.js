@@ -4,12 +4,6 @@ const router = express.Router();
 const approvalController = require("../controllers/ApprovalController");
 const adminAuth = require("../auth/adminAuthController");
 
-// Admin views all pending proofs
-router.get(
-  "/pending-users",
-  adminAuth.protect,
-  approvalController.getPendingUsers
-);
 
 router.patch(
   "/:depositId/approve",

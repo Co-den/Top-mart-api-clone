@@ -147,3 +147,19 @@ exports.getAllDeposits = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+exports.getPendingDeposits = async (req, res) => {
+  try {
+    const deposits = await Deposit.find({ status: "pending" })
+      .populate({
+        path: "user",
+        populate: { path: "bankAccount" },
+      })
+      .populate("account");
+
+    res.json(deposits);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
