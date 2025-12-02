@@ -65,14 +65,14 @@ exports.approveDeposit = async (req, res) => {
         });
 
         return res.json({
-          message: "User and investment approved successfully",
+          message: "User and Deposit approved successfully",
           user,
           investment,
         });
       }
     }
 
-    res.json({ message: "User approved successfully", userId });
+    res.json({ message: "User Deposit approved successfully", depositId });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -91,7 +91,7 @@ exports.rejectUserDeposit = async (req, res) => {
       { status: "rejected", reviewedBy: adminId, reason }
     );
 
-    res.json({ message: "User rejected", depositId, reason });
+    res.json({ message: "User Deposit rejected", depositId, reason });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
