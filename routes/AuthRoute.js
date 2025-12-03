@@ -11,7 +11,7 @@ router.post("/login", v.loginValidator, AuthController.login);
 router.post("/logout", AuthController.logout);
 
 // Update password
-router.post(
+router.patch(
   "/change-Password",
   AuthController.protect,
   AuthController.updatePassword
