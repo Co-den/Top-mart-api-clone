@@ -247,10 +247,7 @@ exports.updatePassword = async (req, res, next) => {
 
     if (!user) return next(new AppError("User not found.", 404));
 
-    const correct = await user.currentPassword(
-      req.body.passwordCurrent,
-      user.password
-    );
+    const correct = await user.currentPassword(req.body.passwordCurrent);
 
     if (!correct) {
       return next(new AppError("Your current password is wrong.", 401));
