@@ -48,7 +48,7 @@ exports.withdrawFunds = async (req, res) => {
       user: userId,
       account: account._id,
       amount,
-      status: "pending", // better to mark as pending until processed
+      status: "pending",
       bankName: user.bankAccount.bankName,
       accountNumber: user.bankAccount.accountNumber,
       accountName: user.bankAccount.accountName,

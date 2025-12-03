@@ -13,6 +13,7 @@ router.post("/logout", AuthController.logout);
 // Update password
 router.post(
   "/change-Password",
+  AuthController.protect,
   AuthController.updatePassword
 );
 
