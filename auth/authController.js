@@ -183,7 +183,6 @@ exports.logout = (req, res) => {
   });
 };
 
-
 // Protect routes
 exports.protect = async (req, res, next) => {
   const tokenFromCookie = req.cookies?.jwt;
@@ -243,15 +242,26 @@ exports.isLoggedIn = async (req, res, next) => {
 };
 
 exports.updatePassword = async (req, res, next) => {
-  const user = await User.findById(req.user.id).select("+password");
+  try {
+    const user = await User.findById(req.user.id).select("+password");
 
-  if (!(await user.currentPassword(req.body.passwordCurrent, user.password))) {
-    return next(new AppError("Your current password is wrong.", 401));
+    if (!user) return next(new AppError("User not found.", 404));
+
+    const correct = await user.currentPassword(
+      req.body.passwordCurrent,
+      user.password
+    );
+
+    if (!correct) {
+      return next(new AppError("Your current password is wrong.", 401));
+    }
+
+    user.password = req.body.password;
+    user.passwordConfirm = req.body.passwordConfirm;
+    await user.save();
+
+    createSendToken(user, 200, req, res);
+  } catch (err) {
+    next(err);
   }
-
-  user.password = req.body.password;
-  user.passwordConfirm = req.body.passwordConfirm;
-  await user.save();
-
-  createSendToken(user, 200, req, res);
 };
