@@ -12,11 +12,7 @@ router.get(
   UserController.getCurrentUser
 );
 // Get all users
-router.get(
-  "/",
-  AuthController.restrictTo(["admin", "superadmin"]),
-  UserController.getAllUsers
-);
+router.get("/", AuthController.restrictTo("admin"), UserController.getAllUsers);
 // Get user by ID
 router.get(
   "/:id",
