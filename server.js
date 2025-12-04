@@ -16,7 +16,7 @@ const purchaseRoutes = require("./routes/PurchaseRoute");
 const investmentRoutes = require("./routes/InvestmentRoute");
 const approvalRoutes = require("./routes/ApprovalRoute");
 const { startMaturityJob } = require("./jobs/Maturity");
-const User = require("./model/UserModel");
+const Admin = require("./model/AdminModel");
 
 // Enable CORS
 const allowedOrigins = [
@@ -65,10 +65,10 @@ mongoose
   });
 
 const seedSuperAdmin = async () => {
-  const existingSuperAdmin = await User.findOne({ role: "superadmin" });
+  const existingSuperAdmin = await Admin.findOne({ role: "superadmin" });
   if (!existingSuperAdmin) {
-    await User.create({
-      fullName: "System SuperAdmin",
+    await Admin.create({
+      fullName: process.env.SUPERADMIN_FULLNAME,
       email: process.env.SUPERADMIN_EMAIL,
       phoneNumber: process.env.SUPERADMIN_PHONE,
       password: process.env.SUPERADMIN_PASSWORD,
