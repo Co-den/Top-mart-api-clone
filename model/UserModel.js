@@ -74,6 +74,7 @@ const userSchema = new mongoose.Schema({
     enum: ["user", "admin", "superadmin"],
     default: "user",
   },
+  joinedAt: { type: Date, default: Date.now },
 });
 
 userSchema.pre("save", async function (next) {
