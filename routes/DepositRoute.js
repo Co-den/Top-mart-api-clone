@@ -23,7 +23,6 @@ router.post(
 router.get(
   "/:depositId",
   userAuth.protect,
-  authController.restrictTo(["user"]),
   dC.getDeposit
 );
 
