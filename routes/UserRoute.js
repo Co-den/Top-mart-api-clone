@@ -6,14 +6,25 @@ const AuthController = require("../auth/authController");
 router.use(AuthController.protect);
 
 // Get user profile
-router.get("/me", UserController.getCurrentUser);
+router.get(
+  "/me",
+  AuthController.restrictTo("user"),
+  UserController.getCurrentUser
+);
 // Get all users
-router.get("/", UserController.getAllUsers);
+router.get("/", AuthController.restrictTo("admin"), UserController.getAllUsers);
 // Get user by ID
-router.get("/:id", UserController.getUserById);
+router.get(
+  "/:id",
+  AuthController.restrictTo("admin"),
+  UserController.getUserById
+);
 // Update user profile
 router.put("/:id", UserController.updateUserProfile);
 // Delete user account
-router.delete("/:id", UserController.deleteUserAccount);
+router.delete(
+  "/:id",
+  AuthController.restrictTo("admin"),
+  UserController.deleteUserAccount
+);
 module.exports = router;
-

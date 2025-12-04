@@ -16,6 +16,7 @@ const purchaseRoutes = require("./routes/PurchaseRoute");
 const investmentRoutes = require("./routes/InvestmentRoute");
 const approvalRoutes = require("./routes/ApprovalRoute");
 const { startMaturityJob } = require("./jobs/Maturity");
+const User = require("./model/UserModel");
 
 // Enable CORS
 const allowedOrigins = [
@@ -62,6 +63,22 @@ mongoose
   .catch((error) => {
     console.error("MongoDB connection error:", error);
   });
+
+const seedSuperAdmin = async () => {
+  const existingSuperAdmin = await User.findOne({ role: "superadmin" });
+  if (!existingSuperAdmin) {
+    await User.create({
+      fullName: "System SuperAdmin",
+      email: process.env.SUPERADMIN_EMAIL,
+      phoneNumber: process.env.SUPERADMIN_PHONE,
+      password: process.env.SUPERADMIN_PASSWORD,
+      confirmPassword: process.env.SUPERADMIN_PASSWORD,
+      role: "superadmin",
+    });
+    console.log("SuperAdmin account created");
+  }
+};
+seedSuperAdmin();
 
 // User routes
 //app.use("/api/users", userRoutes);

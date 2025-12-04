@@ -71,6 +71,7 @@ exports.register = async (req, res) => {
       password,
       confirmPassword,
       referralCode,
+      role: "user",
     });
 
     // generate an email verification token (plain token returned for email link)
@@ -212,6 +213,19 @@ exports.protect = async (req, res, next) => {
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
+};
+
+// Restrict to specific roles
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        status: "fail",
+        message: "You do not have permission to perform this action",
+      });
+    }
+    next();
+  };
 };
 
 // Check if user is logged in

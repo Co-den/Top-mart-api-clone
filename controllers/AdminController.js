@@ -1,4 +1,5 @@
 const Admin = require("../model/AdminModel");
+const User = require("../model/UserModel");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const dotenv = require("dotenv");
@@ -113,3 +114,34 @@ exports.logoutAdmin = (req, res) => {
     .status(200)
     .json({ status: "success", message: "Logged out successfully" });
 };
+
+// Promote a user to admin (only superadmin can do this)
+exports.makeAdmin = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role: "admin" },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: `User ${user.fullName} promoted to admin`,
+      data: { user },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "fail",
+      message: err.message,
+    });
+  }
+};
+
+

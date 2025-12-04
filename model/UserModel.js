@@ -69,6 +69,11 @@ const userSchema = new mongoose.Schema({
     enum: ["pending", "approved", "rejected"],
     default: "pending",
   },
+  role: {
+    type: String,
+    enum: ["user", "admin", "superadmin"],
+    default: "user",
+  },
 });
 
 userSchema.pre("save", async function (next) {
