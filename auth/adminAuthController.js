@@ -4,7 +4,7 @@ dotenv.config({ path: "./config.env" });
 
 exports.protect = (req, res, next) => {
   // accept token from cookie OR Authorization header
-  const tokenFromCookie = req.cookies?.jwt;
+  const tokenFromCookie = req.cookies?.admin_token;
   const authHeader = req.headers?.authorization;
   const tokenFromHeader =
     authHeader && authHeader.startsWith("Bearer ")

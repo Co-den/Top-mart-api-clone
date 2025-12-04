@@ -83,7 +83,7 @@ exports.loginAdmin = async (req, res) => {
 };
 
 exports.verifyAdmin = async (req, res) => {
-  const token = req.cookies.jwt;
+  const token = req.cookies.admin_token;
   if (!token) return res.status(401).json({ message: "Not authenticated" });
 
   try {
@@ -107,7 +107,7 @@ exports.verifyAdmin = async (req, res) => {
 };
 
 exports.logoutAdmin = (req, res) => {
-  res.cookie("jwt", "loggedout", {
+  res.cookie("admin_token", "loggedout", {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
   });

@@ -186,7 +186,7 @@ exports.logout = (req, res) => {
 
 // Protect routes
 exports.protect = async (req, res, next) => {
-  const tokenFromCookie = req.cookies?.jwt;
+  const tokenFromCookie = req.cookies?.user_token;
   const authHeader = req.headers?.authorization;
   const tokenFromHeader =
     authHeader && authHeader.startsWith("Bearer ")
@@ -230,10 +230,10 @@ exports.restrictTo = (...roles) => {
 
 // Check if user is logged in
 exports.isLoggedIn = async (req, res, next) => {
-  if (req.cookies.jwt) {
+  if (req.cookies.user_token) {
     try {
       const decoded = await promisify(jwt.verify)(
-        req.cookies.jwt,
+        req.cookies.user_token,
         process.env.JWT_SECRET
       );
 
