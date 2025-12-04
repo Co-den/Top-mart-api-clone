@@ -4,11 +4,12 @@ const UserController = require("../controllers/UserController");
 const AuthController = require("../auth/authController");
 const adminAuthser = require("../auth/adminAuthController");
 
-router.use(AuthController.protect);
+
 
 // Get user profile
 router.get(
   "/me",
+  AuthController.protect,
   AuthController.restrictTo("user"),
   UserController.getCurrentUser
 );
@@ -26,10 +27,16 @@ router.get(
   UserController.getUserById
 );
 // Update user profile
-router.put("/:id", UserController.updateUserProfile);
+router.put(
+  "/:id",
+  AuthController.protect,
+  AuthController.restrictTo("user"),
+  UserController.updateUserProfile
+);
 // Delete user account
 router.delete(
   "/:id",
+  adminAuthser.protect,
   AuthController.restrictTo("admin"),
   UserController.deleteUserAccount
 );
