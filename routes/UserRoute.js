@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const UserController = require("../controllers/UserController");
 const AuthController = require("../auth/authController");
+const adminAuthser = require("../auth/adminAuthController");
 
 router.use(AuthController.protect);
 
@@ -12,10 +13,16 @@ router.get(
   UserController.getCurrentUser
 );
 // Get all users
-router.get("/", AuthController.restrictTo("admin"), UserController.getAllUsers);
+router.get(
+  "/",
+  adminAuthser.protect,
+  AuthController.restrictTo("admin"),
+  UserController.getAllUsers
+);
 // Get user by ID
 router.get(
   "/:id",
+  adminAuthser.protect,
   AuthController.restrictTo("admin"),
   UserController.getUserById
 );
