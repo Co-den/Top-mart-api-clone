@@ -23,7 +23,7 @@ const createSendToken = (admin, statusCode, req, res) => {
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   });
 
-  admin.passwordHash = undefined;
+  admin.password = undefined;
 
   res.status(statusCode).json({
     status: "success",
@@ -34,8 +34,9 @@ const createSendToken = (admin, statusCode, req, res) => {
 
 exports.registerAdmin = async (req, res) => {
   try {
-    const { fullName, email, password, confirmPassword, accessCode } = req.body;
-    if (!fullName || !email || !password || !confirmPassword || !accessCode) {
+    const { fullName, email, phoneNumber, password, confirmPassword } =
+      req.body;
+    if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -44,19 +45,19 @@ exports.registerAdmin = async (req, res) => {
       return res.status(400).json({ message: "Admin already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const newAdmin = new Admin({
+    const newAdmin = await Admin.create({
       fullName,
       email,
-      passwordHash: hashedPassword,
-      confirmPasswordHash: hashedPassword,
-      accessCode,
+      phoneNumber,
+      password,
+      confirmPassword,
+      role: "admin",
     });
-    await newAdmin.save();
 
     createSendToken(newAdmin, 201, req, res);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("REGISTER ADMIN ERROR:", err);
+    res.status(500).json({ message: err.message, error: err });
   }
 };
 
@@ -143,5 +144,3 @@ exports.makeAdmin = async (req, res) => {
     });
   }
 };
-
-
