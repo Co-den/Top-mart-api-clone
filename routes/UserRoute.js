@@ -37,7 +37,6 @@ router.put(
 router.delete(
   "/:id",
   adminAuthser.protect,
-  AuthController.restrictTo("admin"),
   UserController.deleteUserAccount
 );
 module.exports = router;
