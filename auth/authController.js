@@ -18,7 +18,7 @@ const signToken = (id) => {
 const createSendToken = (user, statusCode, req, res, account = null) => {
   const token = signToken(user._id);
 
-  res.cookie("jwt", token, {
+  res.cookie("user_token", token, {
     expires: new Date(Date.now() + jwtCookieExpiresIn * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: req.secure || req.headers["x-forwarded-proto"] === "https",

@@ -16,7 +16,7 @@ const signToken = (id) => {
 const createSendToken = (admin, statusCode, req, res) => {
   const token = signToken(admin._id);
 
-  res.cookie("jwt", token, {
+  res.cookie("admin_token", token, {
     expires: new Date(Date.now() + jwtCookieExpiresIn * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
