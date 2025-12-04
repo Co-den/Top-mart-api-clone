@@ -16,7 +16,6 @@ router.get(
 router.get(
   "/",
   adminAuthser.protect,
-  AuthController.restrictTo("admin"),
   UserController.getAllUsers
 );
 // Get user by ID
