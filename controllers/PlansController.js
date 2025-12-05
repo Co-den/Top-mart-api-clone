@@ -1,6 +1,7 @@
 const User = require("../model/UserModel");
 const Plan = require("../model/PlanModel");
 const Investment = require("../model/InvestmentModel");
+const Account = require("../model/AccountModel");
 //const { sendInvestmentEmail } = require("../utils/email");
 
 exports.createPlan = async (req, res) => {
@@ -35,27 +36,37 @@ exports.buyPlan = async (req, res) => {
     const userId = req.user.id;
     const { planId } = req.params;
 
-    // Fetch user and plan
-    const user = await User.findById(userId);
+    // Fetch user, account, and plan
+    const user = await User.findById(userId).populate("account");
     const plan = await Plan.findById(planId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    if (!user.account) {
+      return res.status(404).json({ message: "Account not found" });
+    }
     if (!plan) {
       return res.status(404).json({ message: "Plan not found" });
     }
 
-    // Check balance
-    if (user.balance < plan.price) {
+    // Fetch the account
+    const account = await Account.findById(user.account._id || user.account);
+
+    if (!account) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    // Check account balance
+    if (account.balance < plan.price) {
       return res
         .status(400)
         .json({ message: "Insufficient funds for this plan" });
     }
 
-    // Deduct balance using atomic update (bypasses validation)
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
+    // Deduct balance from Account using atomic update
+    const updatedAccount = await Account.findByIdAndUpdate(
+      account._id,
       { $inc: { balance: -plan.price } },
       { new: true, runValidators: false }
     );
@@ -76,7 +87,7 @@ exports.buyPlan = async (req, res) => {
       totalReturn: plan.totalReturn,
     });
 
-    // Trigger automation (e.g. cron job or queue to credit daily returns)
+    // Optional: Send investment email
     /*await sendInvestmentEmail(user.email, {
       planName: plan.name,
       amount: plan.price,
@@ -86,7 +97,10 @@ exports.buyPlan = async (req, res) => {
     res.json({
       message: "Plan purchased successfully",
       investment,
-      newBalance: updatedUser.balance,
+      account: {
+        balance: updatedAccount.balance,
+        bonus: updatedAccount.bonus,
+      },
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

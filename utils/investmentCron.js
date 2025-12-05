@@ -2,8 +2,7 @@ const cron = require("node-cron");
 const Investment = require("../model/InvestmentModel");
 const User = require("../model/UserModel");
 const Account = require("../model/AccountModel");
-const logger = require('../utils/logger');
-
+const logger = require("./logger");
 
 // Run daily at midnight
 const startInvestmentCron = () => {
@@ -19,15 +18,29 @@ const startInvestmentCron = () => {
 
       logger.info(`Processing ${activeInvestments.length} active investments`);
 
+      let successCount = 0;
+      let failCount = 0;
+
       for (const investment of activeInvestments) {
         try {
           // Calculate daily return amount
           const dailyAmount =
             investment.depositAmount * (investment.dailyReturn / 100);
 
-          // Credit user account
-          await Account.findOneAndUpdate(
-            { user: investment.userId._id },
+          // Find and credit the user's account
+          const account = await Account.findOne({
+            user: investment.userId._id,
+          });
+
+          if (!account) {
+            logger.error(`Account not found for user ${investment.userId._id}`);
+            failCount++;
+            continue;
+          }
+
+          // Credit account balance
+          await Account.findByIdAndUpdate(
+            account._id,
             { $inc: { balance: dailyAmount } },
             { new: true }
           );
@@ -38,57 +51,37 @@ const startInvestmentCron = () => {
           await investment.save();
 
           logger.info(
-            `Credited ${dailyAmount} to user ${investment.userId._id}`
+            `Credited ${dailyAmount} to account ${account._id} for user ${investment.userId._id}`
           );
+          successCount++;
 
           // Optional: Send notification email
           // await sendDailyCreditEmail(investment.userId.email, { amount: dailyAmount });
         } catch (err) {
-          logger.error(
-            `Error processing investment ${investment._id}:`,
-            err.message
-          );
+          failCount++;
+          logger.error(`Error processing investment ${investment._id}:`, {
+            error: err.message,
+            stack: err.stack,
+            investmentId: investment._id,
+          });
         }
       }
+
+      logger.info(
+        `Daily returns completed: ${successCount} successful, ${failCount} failed`
+      );
 
       // Check and complete expired investments
       await completeExpiredInvestments();
     } catch (err) {
-      logger.error("Investment cron error:", err.message);
+      logger.error("Investment cron error:", {
+        error: err.message,
+        stack: err.stack,
+      });
     }
   });
 
-  //console.log("Investment cron job started - runs daily at midnight");
+  logger.info("Investment cron job started - runs daily at midnight");
 };
-
-//complete expired investments
-const completeExpiredInvestments = async () => {
-  try {
-    const expiredInvestments = await Investment.find({
-      status: "active",
-      investmentEnd: { $lte: new Date() },
-    }).populate("userId planId");
-
-    logger.info(`Found ${expiredInvestments.length} expired investments`);
-
-    for (const investment of expiredInvestments) {
-      // Mark as completed
-      investment.status = "completed";
-      investment.lastStatusChangeAt = new Date();
-      await investment.save();
-
-      // Optional: Send completion email
-      // await sendInvestmentCompletionEmail(investment.userId.email, {
-      //   planName: investment.planId.name,
-      //   totalEarned: investment.totalEarned
-      // });
-
-      logger.info(`Completed investment ${investment._id}`);
-    }
-  } catch (err) {
-    logger.error("Error completing investments:", err.message);
-  }
-};
-
 
 module.exports = { startInvestmentCron };
