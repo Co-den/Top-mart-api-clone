@@ -12,4 +12,4 @@ const planSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Plan", productSchema);
+module.exports = mongoose.model("Plan", planSchema);
