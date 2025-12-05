@@ -12,10 +12,9 @@ const withdrawRoutes = require("./routes/WithdrawRoute");
 const { paystackWebhook } = require("./controllers/PaystackWebhookController");
 const depositRoutes = require("./routes/DepositRoute");
 const plansRoutes = require("./routes/PlanRoute");
-//const purchaseRoutes = require("./routes/PurchaseRoute");
-//const investmentRoutes = require("./routes/InvestmentRoute");
 const approvalRoutes = require("./routes/ApprovalRoute");
-const { startMaturityJob } = require("./jobs/Maturity");
+const { startInvestmentCron } = require("./utils/investmentCron");
+const logger = require('./utils/logger');
 const Admin = require("./model/AdminModel");
 
 // Enable CORS
@@ -58,10 +57,10 @@ dotenv.config({ path: "./config.env" });
 mongoose
   .connect(process.env.DATABASE_URI)
   .then(() => {
-    console.log("Connected to MongoDB");
+    logger.info("Connected to MongoDB");
   })
   .catch((error) => {
-    console.error("MongoDB connection error:", error);
+    logger.error("MongoDB connection error:", error);
   });
 
 const seedSuperAdmin = async () => {
@@ -75,13 +74,12 @@ const seedSuperAdmin = async () => {
       confirmPassword: process.env.SUPERADMIN_PASSWORD,
       role: "superadmin",
     });
-    console.log("SuperAdmin account created");
+    logger.info("SuperAdmin account created");
   }
 };
 seedSuperAdmin();
 
-// User routes
-//app.use("/api/users", userRoutes);
+// ROUTES
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
@@ -89,10 +87,8 @@ app.use("/api/bank", bankRoutes);
 app.use("/api/deposits", depositRoutes);
 app.use("/api/withdrawal", withdrawRoutes);
 app.use("/api/plans", plansRoutes);
-//app.use("/api/purchases", purchaseRoutes);
-//app.use("/api/investments", investmentRoutes);
 app.use("/api/approval", approvalRoutes);
-startMaturityJob();
+startInvestmentCron();
 
 // Paystack webhook route
 app.post(
@@ -103,7 +99,7 @@ app.post(
 
 //LISTENING SERVER
 app.listen(process.env.PORT, () => {
-  console.log(
+  logger.info(
     `Server is running on ${process.env.LOCALHOST}:${process.env.PORT}`
   );
 });

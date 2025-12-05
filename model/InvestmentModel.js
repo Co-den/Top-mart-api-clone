@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+
+
 const investmentSchema = new mongoose.Schema(
   {
     userId: {
@@ -16,43 +18,40 @@ const investmentSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
-    // Lifecycle status
     status: {
       type: String,
-      enum: ["pending", "rejected", "active", "completed", "cancelled"],
-      default: "pending",
+      enum: ["active", "completed", "cancelled"],
+      default: "active",
     },
-
-    // Admin approval tracking
-    approvedByAdminId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
+    investmentStart: {
+      type: Date,
+      default: Date.now,
     },
-    approvalNote: String,
-    rejectionReason: String,
-
-    // Investment cycle timing
-    investmentStart: Date,
-    investmentEnd: Date,
-
-    // Returns and payout
-    returnAmount: {
+    investmentEnd: {
+      type: Date,
+      required: true,
+    },
+    dailyReturn: {
+      type: Number,
+      required: true,
+    },
+    totalReturn: {
+      type: Number,
+      required: true,
+    },
+    totalEarned: {
       type: Number,
       default: 0,
     },
-    payoutCredited: {
-      type: Boolean,
-      default: false,
+    lastCreditedAt: {
+      type: Date,
     },
-
-    // Audit
-    lastStatusChangeAt: Date,
+    lastStatusChangeAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { timestamps: true }
 );
-
- // for efficient maturity scans
-investmentSchema.index({ status: 1, investmentEnd: 1 });
 
 module.exports = mongoose.model("Investment", investmentSchema);
