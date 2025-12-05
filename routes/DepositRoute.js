@@ -20,11 +20,7 @@ router.post(
 );
 
 // Get deposit by ID
-router.get(
-  "/:depositId",
-  userAuth.protect,
-  dC.getDeposit
-);
+router.get("/:depositId", userAuth.protect, dC.getDeposit);
 
 // Get all deposits - admin only
 router.get(
@@ -38,13 +34,13 @@ router.get(
 router.patch(
   "/:depositId/approve",
   adminAuthser.protect,
-  authController.restrictTo(["admin", "superadmin"]),
+  userAuth.restrictTo(["admin", "superadmin"]),
   dC.approveDeposit
 );
 router.patch(
   "/:depositId/reject",
   adminAuthser.protect,
-  authController.restrictTo(["admin", "superadmin"]),
+  userAuth.restrictTo(["admin", "superadmin"]),
   dC.rejectDeposit
 );
 
