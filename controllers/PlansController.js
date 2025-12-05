@@ -77,11 +77,11 @@ exports.buyPlan = async (req, res) => {
     });
 
     // Trigger automation (e.g. cron job or queue to credit daily returns)
-    await sendInvestmentEmail(user.email, {
+    /*await sendInvestmentEmail(user.email, {
       planName: plan.name,
       amount: plan.price,
       investmentId: investment._id,
-    });
+    });*/
 
     res.json({
       message: "Plan purchased successfully",
