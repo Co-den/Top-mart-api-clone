@@ -33,12 +33,12 @@ exports.getPlans = async (req, res) => {
 exports.buyPlan = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { planId } = req.body;
+    const { planId } = req.params;
 
     // Fetch user and plan
     const user = await User.findById(userId);
     const plan = await Plan.findById(planId);
-    
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -77,11 +77,11 @@ exports.buyPlan = async (req, res) => {
     });
 
     // Trigger automation (e.g. cron job or queue to credit daily returns)
-   /* await sendInvestmentEmail(user.email, {
+    await sendInvestmentEmail(user.email, {
       planName: plan.name,
       amount: plan.price,
       investmentId: investment._id,
-    }); */
+    });
 
     res.json({
       message: "Plan purchased successfully",
