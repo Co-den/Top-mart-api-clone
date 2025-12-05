@@ -19,7 +19,7 @@ const getTransporter = () => {
       pass: process.env.GMAIL_PASSWORD,
     },
   });
-}
+};
 
 /**
  * Verify the transporter connection (useful to check credentials and connectivity).
@@ -203,4 +203,27 @@ exports.sendAccountCreationEmail = async (email, account = {}) => {
     <p>Get started by logging in and completing your profile.</p>
   `;
   return sendMail({ to: email, subject: "top-mart - Account Created", html });
+};
+
+exports.sendInvestmentEmail = async (email, investment = {}) => {
+  if (!email || !investment.amount)
+    throw new Error("Missing email or investment data");
+  const html = `
+    <h2>Investment Successful</h2>
+    <p>You have successfully invested <strong>$${
+      investment.amount
+    }</strong> in the <strong>${investment.planName}</strong> plan.</p>
+    ${
+      investment.investmentId
+        ? `<p>Investment ID: ${investment.investmentId}</p>`
+        : ""
+    }
+    <p>Thank you for investing with top-mart.</p>
+  `;
+
+  return sendMail({
+    to: email,
+    subject: "top-mart - Investment Confirmation",
+    html,
+  });
 };

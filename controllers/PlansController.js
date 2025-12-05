@@ -1,6 +1,7 @@
 const User = require("../model/UserModel");
 const Plan = require("../model/PlanModel");
 const Investment = require("../model/InvestmentModel");
+//const { sendInvestmentEmail } = require("../utils/email");
 
 exports.createPlan = async (req, res) => {
   try {
@@ -37,26 +38,33 @@ exports.buyPlan = async (req, res) => {
     // Fetch user and plan
     const user = await User.findById(userId);
     const plan = await Plan.findById(planId);
-    if (!user || !plan) {
-      return res.status(404).json({ message: "User or Plan not found" });
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (!plan) {
+      return res.status(404).json({ message: "Plan not found" });
     }
 
     // Check balance
-    if (user.walletBalance < plan.price) {
+    if (user.balance < plan.price) {
       return res
         .status(400)
         .json({ message: "Insufficient funds for this plan" });
     }
 
-    // Deduct balance
-    user.walletBalance -= plan.price;
-    await user.save();
+    // Deduct balance using atomic update (bypasses validation)
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $inc: { balance: -plan.price } },
+      { new: true, runValidators: false }
+    );
 
     // Create investment record
     const now = new Date();
     const investment = await Investment.create({
-      user: user._id,
-      plan: plan._id,
+      userId: user._id,
+      planId: plan._id,
       depositAmount: plan.price,
       status: "active",
       investmentStart: now,
@@ -69,16 +77,16 @@ exports.buyPlan = async (req, res) => {
     });
 
     // Trigger automation (e.g. cron job or queue to credit daily returns)
-    await sendInvestmentEmail(user.email, {
+   /* await sendInvestmentEmail(user.email, {
       planName: plan.name,
       amount: plan.price,
       investmentId: investment._id,
-    });
+    }); */
 
     res.json({
       message: "Plan purchased successfully",
       investment,
-      newBalance: user.walletBalance,
+      newBalance: updatedUser.balance,
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

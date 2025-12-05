@@ -6,6 +6,6 @@ const authAdmin = require("../auth/adminAuthController");
 
 router.post("/", authAdmin.protect, planCtrl.createPlan);
 router.get("/", authAdmin.protect, planCtrl.getPlans);
-router.post("/buy", AuthController.protect, planCtrl.buyPlan);
+router.post("/:planId", AuthController.protect, planCtrl.buyPlan);
 
 module.exports = router;
