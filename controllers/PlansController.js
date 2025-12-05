@@ -32,7 +32,7 @@ exports.getPlans = async (req, res) => {
 
 exports.buyPlan = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const user = req.user;
     const { planId } = req.params;
 
     // Fetch user and plan
