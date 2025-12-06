@@ -4,8 +4,6 @@ const UserController = require("../controllers/UserController");
 const AuthController = require("../auth/authController");
 const adminAuthser = require("../auth/adminAuthController");
 
-
-
 // Get user profile
 router.get(
   "/me",
@@ -14,11 +12,7 @@ router.get(
   UserController.getCurrentUser
 );
 // Get all users
-router.get(
-  "/",
-  adminAuthser.protect,
-  UserController.getAllUsers
-);
+router.get("/", adminAuthser.protect, UserController.getAllUsers);
 // Get user by ID
 router.get(
   "/:id",
@@ -34,9 +28,13 @@ router.put(
   UserController.updateUserProfile
 );
 // Delete user account
-router.delete(
-  "/:id",
-  adminAuthser.protect,
-  UserController.deleteUserAccount
+router.delete("/:id", adminAuthser.protect, UserController.deleteUserAccount);
+
+router.get("/deposits", AuthController.protect, UserController.getDeposits);
+router.get(
+  "/withdrawals",
+  AuthController.protect,
+  UserController.getWithdrawals
 );
+
 module.exports = router;

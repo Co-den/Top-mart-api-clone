@@ -74,3 +74,31 @@ exports.getCurrentUser = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+
+exports.getDeposits = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const deposits = await Deposit.find({ user_id: userId })
+            .sort({ createdAt: -1 });
+            
+        res.json({ deposits });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch deposits' });
+    }
+};
+
+exports.getWithdrawals = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const withdrawals = await Withdrawal.find({ user_id: userId })
+            .sort({ createdAt: -1 });
+            
+        res.json({ withdrawals });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch withdrawals' });
+    }
+};
