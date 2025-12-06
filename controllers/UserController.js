@@ -81,24 +81,37 @@ exports.getDeposits = async (req, res) => {
   try {
     console.log("Fetching deposits for user:", req.user.id);
 
-    const deposits = await Deposit.find({
-      $or: [
-        { user_id: req.user.id },
-        { userId: req.user.id },
-        { user: req.user.id },
-      ],
-    }).sort({ createdAt: -1 });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        status: "error",
+        message: "User not authenticated",
+      });
+    }
+
+    const deposits = await Deposit.find({ user: req.user.id })
+      .populate("account", "bankName accountNumber accountName")
+      .sort({ createdAt: -1 });
 
     console.log("Found deposits:", deposits.length);
 
-    res.json({
+    const formattedDeposits = deposits.map((deposit) => ({
+      id: deposit._id,
+      amount: deposit.amount,
+      date: deposit.createdAt.toISOString().split("T")[0],
+      status: deposit.status === "successful" ? "completed" : deposit.status,
+      reference: deposit.reference || `DEP-${deposit._id.toString().slice(-6)}`,
+      method: deposit.meta?.method || "Bank Transfer",
+    }));
+
+    return res.status(200).json({
       status: "success",
-      data: deposits,
+      data: formattedDeposits,
     });
   } catch (error) {
-    console.error("Error fetching deposits:", error.message);
+    console.error("Error in getDeposits:", error.message);
     console.error("Stack:", error.stack);
-    res.status(500).json({
+
+    return res.status(500).json({
       status: "error",
       message: error.message,
     });
