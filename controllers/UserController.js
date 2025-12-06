@@ -79,18 +79,29 @@ exports.getCurrentUser = async (req, res) => {
 
 exports.getDeposits = async (req, res) => {
   try {
-    const userId = req.user.id;
+    console.log("Fetching deposits for user:", req.user.id);
 
-    const deposits = await Deposit.find({ user_id: userId }).sort({
-      createdAt: -1,
-    });
+    const deposits = await Deposit.find({
+      $or: [
+        { user_id: req.user.id },
+        { userId: req.user.id },
+        { user: req.user.id },
+      ],
+    }).sort({ createdAt: -1 });
+
+    console.log("Found deposits:", deposits.length);
 
     res.json({
       status: "success",
       data: deposits,
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch deposits" });
+    console.error("Error fetching deposits:", error.message);
+    console.error("Stack:", error.stack);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
   }
 };
 
