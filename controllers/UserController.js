@@ -1,4 +1,6 @@
 const User = require("../model/UserModel");
+const Deposit = require("../model/DepositModel");
+const Withdrawal = require("../model/WithdrawalModel");
 
 // Create a new user
 exports.createUser = async (req, res) => {
@@ -75,30 +77,36 @@ exports.getCurrentUser = async (req, res) => {
   }
 };
 
-
-
 exports.getDeposits = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        
-        const deposits = await Deposit.find({ user_id: userId })
-            .sort({ createdAt: -1 });
-            
-        res.json({ deposits });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch deposits' });
-    }
+  try {
+    const userId = req.user.id;
+
+    const deposits = await Deposit.find({ user_id: userId }).sort({
+      createdAt: -1,
+    });
+
+    res.json({
+      status: "success",
+      data: deposits,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch deposits" });
+  }
 };
 
 exports.getWithdrawals = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        
-        const withdrawals = await Withdrawal.find({ user_id: userId })
-            .sort({ createdAt: -1 });
-            
-        res.json({ withdrawals });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch withdrawals' });
-    }
+  try {
+    const userId = req.user.id;
+
+    const withdrawals = await Withdrawal.find({ user_id: userId }).sort({
+      createdAt: -1,
+    });
+
+    res.json({
+      status: "success",
+      data: withdrawals,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch withdrawals" });
+  }
 };
