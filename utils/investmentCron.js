@@ -1,6 +1,5 @@
 const cron = require("node-cron");
 const Investment = require("../model/InvestmentModel");
-const User = require("../model/UserModel");
 const Account = require("../model/AccountModel");
 const logger = require("./logger");
 
@@ -23,11 +22,10 @@ const startInvestmentCron = () => {
 
       for (const investment of activeInvestments) {
         try {
-          // Calculate daily return amount
-          const dailyAmount =
-            investment.depositAmount * (investment.dailyReturn / 100);
+          // Daily return is already in Naira (fixed amount), not percentage
+          const dailyAmount = investment.dailyReturn;
 
-          // Find and credit the user's account
+          // Find and credit the user's account (not user balance)
           const account = await Account.findOne({
             user: investment.userId._id,
           });
@@ -51,7 +49,7 @@ const startInvestmentCron = () => {
           await investment.save();
 
           logger.info(
-            `Credited ${dailyAmount} to account ${account._id} for user ${investment.userId._id}`
+            `Credited ₦${dailyAmount} to account ${account._id} for user ${investment.userId._id}`
           );
           successCount++;
 
@@ -82,6 +80,38 @@ const startInvestmentCron = () => {
   });
 
   logger.info("Investment cron job started - runs daily at midnight");
+};
+
+// Helper function to complete expired investments
+const completeExpiredInvestments = async () => {
+  try {
+    const expiredInvestments = await Investment.find({
+      status: "active",
+      investmentEnd: { $lte: new Date() },
+    }).populate("userId planId");
+
+    logger.info(`Found ${expiredInvestments.length} expired investments`);
+
+    for (const investment of expiredInvestments) {
+      // Mark as completed
+      investment.status = "completed";
+      investment.lastStatusChangeAt = new Date();
+      await investment.save();
+
+      // Optional: Send completion email
+      // await sendInvestmentCompletionEmail(investment.userId.email, {
+      //   planName: investment.planId.name,
+      //   totalEarned: investment.totalEarned
+      // });
+
+      logger.info(`Completed investment ${investment._id}`);
+    }
+  } catch (err) {
+    logger.error("Error completing investments:", {
+      error: err.message,
+      stack: err.stack,
+    });
+  }
 };
 
 module.exports = { startInvestmentCron };
