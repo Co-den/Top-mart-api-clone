@@ -11,6 +11,7 @@ const bankRoutes = require("./routes/BankRoutes");
 const withdrawRoutes = require("./routes/WithdrawRoute");
 const { paystackWebhook } = require("./controllers/PaystackWebhookController");
 const depositRoutes = require("./routes/DepositRoute");
+const investmentRoutes = require("./routes/InvestmentRoute");
 const plansRoutes = require("./routes/PlanRoute");
 const approvalRoutes = require("./routes/ApprovalRoute");
 const { startInvestmentCron } = require("./utils/investmentCron");
@@ -87,6 +88,7 @@ app.use("/api/bank", bankRoutes);
 app.use("/api/deposits", depositRoutes);
 app.use("/api/withdrawal", withdrawRoutes);
 app.use("/api/plans", plansRoutes);
+app.use("/api/investments", investmentRoutes);
 app.use("/api/approval", approvalRoutes);
 startInvestmentCron();
 
