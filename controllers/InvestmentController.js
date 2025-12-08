@@ -1,11 +1,11 @@
-const Investment = require("../model/InvestmentModel");
-const Plan = require("../model/PlanModel");
+const Investment = require("../models/Investment");
+const Plan = require("../models/Plan");
 
 // Create a new investment
 exports.createInvestment = async (req, res) => {
   try {
     const { planId, depositAmount } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.id; // Assuming auth middleware sets req.user
 
     // Validate input
     if (!planId || !depositAmount) {
