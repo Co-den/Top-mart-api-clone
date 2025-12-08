@@ -1,5 +1,5 @@
-const Investment = require("../models/Investment");
-const Plan = require("../models/Plan");
+const Investment = require("../models/InvestmentModel");
+const Plan = require("../models/PlanModel");
 
 // Create a new investment
 exports.createInvestment = async (req, res) => {
