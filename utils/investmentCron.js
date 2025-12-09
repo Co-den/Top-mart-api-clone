@@ -1,117 +1,129 @@
 const cron = require("node-cron");
 const Investment = require("../model/InvestmentModel");
-const Account = require("../model/AccountModel");
-const logger = require("./logger");
+const logger = require("../utils/logger");
 
-// Run daily at midnight
-const startInvestmentCron = () => {
-  cron.schedule("0 0 * * *", async () => {
-    logger.info("Running daily investment returns...");
+// Function to process daily returns
+const processDailyReturns = async () => {
+  try {
+    console.log("Starting daily returns processing...");
 
-    try {
-      // Find all active investments
-      const activeInvestments = await Investment.find({
-        status: "active",
-        investmentEnd: { $gt: new Date() },
-      }).populate("planId userId");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-      logger.info(`Processing ${activeInvestments.length} active investments`);
+    // Find all active investments
+    const activeInvestments = await Investment.find({ status: "active" });
 
-      let successCount = 0;
-      let failCount = 0;
+    logger.info(`Found ${activeInvestments.length} active investments`);
 
-      for (const investment of activeInvestments) {
-        try {
-          // Daily return is already in Naira (fixed amount), not percentage
-          const dailyAmount = investment.dailyReturn;
+    let processedCount = 0;
+    let completedCount = 0;
+    let skippedCount = 0;
 
-          // Find and credit the user's account (not user balance)
-          const account = await Account.findOne({
-            user: investment.userId._id,
-          });
-
-          if (!account) {
-            logger.error(`Account not found for user ${investment.userId._id}`);
-            failCount++;
-            continue;
-          }
-
-          // Credit account balance
-          await Account.findByIdAndUpdate(
-            account._id,
-            { $inc: { balance: dailyAmount } },
-            { new: true }
-          );
-
-          // Track total earned
-          investment.totalEarned = (investment.totalEarned || 0) + dailyAmount;
-          investment.lastCreditedAt = new Date();
-          await investment.save();
-
-          logger.info(
-            `Credited ₦${dailyAmount} to account ${account._id} for user ${investment.userId._id}`
-          );
-          successCount++;
-
-          // Optional: Send notification email
-          // await sendDailyCreditEmail(investment.userId.email, { amount: dailyAmount });
-        } catch (err) {
-          failCount++;
-          logger.error(`Error processing investment ${investment._id}:`, {
-            error: err.message,
-            stack: err.stack,
-            investmentId: investment._id,
-          });
-        }
+    for (const investment of activeInvestments) {
+      // Check if already credited today
+      if (
+        investment.lastCreditedAt &&
+        new Date(investment.lastCreditedAt).setHours(0, 0, 0, 0) >=
+          today.getTime()
+      ) {
+        skippedCount++;
+        continue;
       }
 
-      logger.info(
-        `Daily returns completed: ${successCount} successful, ${failCount} failed`
-      );
-
-      // Check and complete expired investments
-      await completeExpiredInvestments();
-    } catch (err) {
-      logger.error("Investment cron error:", {
-        error: err.message,
-        stack: err.stack,
-      });
+      // Check if investment has ended
+      if (new Date(investment.investmentEnd) <= new Date()) {
+        investment.status = "completed";
+        investment.lastStatusChangeAt = new Date();
+        await investment.save();
+        completedCount++;
+        logger.info(`Investment ${investment._id} marked as completed`);
+      } else {
+        // Credit daily return
+        investment.totalEarned += investment.dailyReturn;
+        investment.lastCreditedAt = new Date();
+        await investment.save();
+        processedCount++;
+        logger.info(
+          `Credited ${investment.dailyReturn} to investment ${investment._id}`
+        );
+      }
     }
-  });
 
-  logger.info("Investment cron job started - runs daily at midnight");
-};
-
-// Helper function to complete expired investments
-const completeExpiredInvestments = async () => {
-  try {
-    const expiredInvestments = await Investment.find({
-      status: "active",
-      investmentEnd: { $lte: new Date() },
-    }).populate("userId planId");
-
-    logger.info(`Found ${expiredInvestments.length} expired investments`);
-
-    for (const investment of expiredInvestments) {
-      // Mark as completed
-      investment.status = "completed";
-      investment.lastStatusChangeAt = new Date();
-      await investment.save();
-
-      // Optional: Send completion email
-      // await sendInvestmentCompletionEmail(investment.userId.email, {
-      //   planName: investment.planId.name,
-      //   totalEarned: investment.totalEarned
-      // });
-
-      logger.info(`Completed investment ${investment._id}`);
-    }
-  } catch (err) {
-    logger.error("Error completing investments:", {
-      error: err.message,
-      stack: err.stack,
-    });
+    logger.info(`Daily returns processing completed:
+      - Processed: ${processedCount}
+      - Completed: ${completedCount}
+      - Skipped: ${skippedCount}
+    );`);
+    return {
+      success: true,
+      processed: processedCount,
+      completed: completedCount,
+      skipped: skippedCount,
+    };
+  } catch (error) {
+    logger.error("Error processing daily returns:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 };
 
-module.exports = { startInvestmentCron };
+// Schedule cron job to run daily at midnight
+const startInvestmentCron = () => {
+  // Run every day at 12:01 AM
+  cron.schedule("1 0 * * *", async () => {
+    logger.info("Running scheduled daily returns processing...");
+    await processDailyReturns();
+  });
+
+  logger.info("Investment cron job scheduled - runs daily at 12:01 AM");
+};
+
+
+const startInvestmentInterval = () => {
+  // Calculate milliseconds until next midnight
+  const now = new Date();
+  const night = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1, // tomorrow
+    0,
+    1,
+    0,
+    0 // 12:01 AM
+  );
+  const msToMidnight = night.getTime() - now.getTime();
+
+  // Run first time at midnight
+  setTimeout(() => {
+    processDailyReturns();
+
+    // Then run every 24 hours
+    setInterval(() => {
+      processDailyReturns();
+    }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+  }, msToMidnight);
+
+  logger.info(
+    `Investment automation will start in ${Math.round(
+      msToMidnight / 1000 / 60
+    )} minutes`
+  );
+};
+
+const startTestCron = () => {
+  cron.schedule("* * * * *", async () => {
+    logger.info("Running TEST daily returns processing...");
+    await processDailyReturns();
+  });
+
+  logger.info("TEST MODE: Processing returns every minute");
+};
+
+module.exports = {
+  startInvestmentCron,
+  startInvestmentInterval,
+  startTestCron,
+  processDailyReturns,
+};

@@ -15,7 +15,7 @@ const investmentRoutes = require("./routes/InvestmentRoute");
 const plansRoutes = require("./routes/PlanRoute");
 const approvalRoutes = require("./routes/ApprovalRoute");
 const { startInvestmentCron } = require("./utils/investmentCron");
-const logger = require('./utils/logger');
+const logger = require("./utils/logger");
 const Admin = require("./model/AdminModel");
 
 // Enable CORS
@@ -48,7 +48,7 @@ app.use(
 // Middleware to parse JSON requests
 app.use(express.json());
 
-// ensure cookie-parser is registered before your auth middleware/routes
+//cookie-parser
 app.use(cookieParser());
 
 // Configure environment variables
@@ -63,7 +63,10 @@ mongoose
   .catch((error) => {
     logger.error("MongoDB connection error:", error);
   });
+startInvestmentCron();
+//startTestCron();
 
+// Seed SuperAdmin account if not exists
 const seedSuperAdmin = async () => {
   const existingSuperAdmin = await Admin.findOne({ role: "superadmin" });
   if (!existingSuperAdmin) {
@@ -90,7 +93,6 @@ app.use("/api/withdrawal", withdrawRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/investments", investmentRoutes);
 app.use("/api/approval", approvalRoutes);
-startInvestmentCron();
 
 // Paystack webhook route
 app.post(
