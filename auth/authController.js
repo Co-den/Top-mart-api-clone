@@ -9,14 +9,14 @@ const { sendSignupEmail, sendAccountCreationEmail } = require("../utils/email");
 
 const jwtCookieExpiresIn = Number(process.env.JWT_COOKIE_EXPIRES_IN);
 
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+const signToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES,
   });
 };
 
 const createSendToken = (user, statusCode, req, res, account = null) => {
-  const token = signToken(user._id);
+  const token = signToken(user._id, user.role);
 
   res.cookie("user_token", token, {
     expires: new Date(Date.now() + jwtCookieExpiresIn * 24 * 60 * 60 * 1000),

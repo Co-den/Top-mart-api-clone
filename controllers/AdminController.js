@@ -7,7 +7,6 @@ dotenv.config({ path: "./config.env" });
 
 const jwtCookieExpiresIn = Number(process.env.ADMIN_COOKIE_EXPIRES_IN) || 90;
 
-
 const signToken = (id, role) => {
   return jwt.sign(
     {
@@ -20,7 +19,6 @@ const signToken = (id, role) => {
     }
   );
 };
-
 
 const createSendToken = (admin, statusCode, req, res) => {
   const token = signToken(admin._id, admin.role);
@@ -108,7 +106,7 @@ exports.verifyAdmin = async (req, res) => {
         id: admin._id,
         email: admin.email,
         fullName: admin.fullName,
-        role: admin.role,
+        role: admin.role, 
       },
     });
   } catch {
