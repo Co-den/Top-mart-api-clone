@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const investmentController = require("../controllers/investmentController");
+const investmentController = require("../controllers/InvestmentController");
 const onlyAdmin = require("../auth/adminAuthController");
 const onlyUser = require("../auth/authController");
 
