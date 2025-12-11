@@ -3,6 +3,8 @@ const router = express.Router();
 const investmentController = require("../controllers/InvestmentController");
 const onlyAdmin = require("../auth/adminAuthController");
 const onlyUser = require("../auth/authController");
+const dotenv = require("dotenv");
+dotenv.config({ path: "./config.env" });
 
 // =================================================================
 // USER ROUTES - Require authentication
@@ -82,6 +84,19 @@ router.post(
   onlyAdmin.protect,
   onlyAdmin.authorize("admin"),
   investmentController.catchUpMissedReturns
+);
+
+router.post(
+  "/cron-trigger",
+  (req, res, next) => {
+    // Verify secret key instead of admin auth
+    const cronSecret = req.headers["x-cron-secret"];
+    if (cronSecret !== process.env.CRON_SECRET) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    next();
+  },
+  investmentController.processDailyReturns
 );
 
 module.exports = router;
