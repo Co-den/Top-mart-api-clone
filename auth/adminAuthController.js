@@ -20,6 +20,7 @@ exports.protect = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET);
     req.admin = decoded;
+    req.user = decoded; 
     return next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
@@ -28,21 +29,21 @@ exports.protect = (req, res, next) => {
 
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    // Check if user exists (from protect middleware)
-    if (!req.user) {
+    // Check req.admin
+    if (!req.admin) {
       return res.status(401).json({
         success: false,
         message: "Not authenticated",
       });
     }
 
-    // Check if user has the required role
-    if (!roles.includes(req.user.role)) {
+    // Check if admin has the required role
+    if (!roles.includes(req.admin.role)) {
       return res.status(403).json({
         success: false,
         message: `Access denied. Required role: ${roles.join(
           " or "
-        )}. Your role: ${req.user.role}`,
+        )}. Your role: ${req.admin.role}`,
       });
     }
 

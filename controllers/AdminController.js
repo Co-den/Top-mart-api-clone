@@ -7,14 +7,23 @@ dotenv.config({ path: "./config.env" });
 
 const jwtCookieExpiresIn = Number(process.env.ADMIN_COOKIE_EXPIRES_IN) || 90;
 
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.ADMIN_JWT_SECRET, {
-    expiresIn: process.env.ADMIN_JWT_EXPIRES,
-  });
+
+const signToken = (id, role) => {
+  return jwt.sign(
+    {
+      id,
+      role,
+    },
+    process.env.ADMIN_JWT_SECRET,
+    {
+      expiresIn: process.env.ADMIN_JWT_EXPIRES,
+    }
+  );
 };
 
+
 const createSendToken = (admin, statusCode, req, res) => {
-  const token = signToken(admin._id);
+  const token = signToken(admin._id, admin.role);
 
   res.cookie("admin_token", token, {
     expires: new Date(Date.now() + jwtCookieExpiresIn * 24 * 60 * 60 * 1000),
@@ -89,7 +98,7 @@ exports.verifyAdmin = async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.ADMIN_JWT_SECRET);
     const admin = await Admin.findById(decoded.id).select(
-      "id email fullName accessCode"
+      "id email fullName role"
     );
     if (!admin) return res.status(401).json({ message: "Admin not found" });
 
@@ -99,6 +108,7 @@ exports.verifyAdmin = async (req, res) => {
         id: admin._id,
         email: admin.email,
         fullName: admin.fullName,
+        role: admin.role,
       },
     });
   } catch {
