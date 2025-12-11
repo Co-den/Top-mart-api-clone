@@ -1,11 +1,12 @@
 const Investment = require("../model/InvestmentModel");
 const Plan = require("../model/PlanModel");
 
+
 // Create a new investment
 exports.createInvestment = async (req, res) => {
   try {
     const { planId, depositAmount } = req.body;
-    const userId = req.user.id; // Assuming auth middleware sets req.user
+    const userId = req.user.id;
 
     // Validate input
     if (!planId || !depositAmount) {
@@ -38,6 +39,7 @@ exports.createInvestment = async (req, res) => {
     // Calculate investment details
     const dailyReturn = (depositAmount * plan.dailyReturn) / 100;
     const totalReturn = dailyReturn * plan.duration;
+    const investmentStart = new Date(); // Set start date
     const investmentEnd = new Date();
     investmentEnd.setDate(investmentEnd.getDate() + plan.duration);
 
@@ -48,6 +50,7 @@ exports.createInvestment = async (req, res) => {
       depositAmount,
       dailyReturn,
       totalReturn,
+      investmentStart, // Added to match model
       investmentEnd,
       status: "active",
     });
@@ -71,10 +74,10 @@ exports.createInvestment = async (req, res) => {
   }
 };
 
-// Get all investments (Admin)
+// Get all investments (Admin) - Matches frontend expectations
 exports.getAllInvestments = async (req, res) => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
+    const { status, page = 1, limit = 100 } = req.query;
 
     // Build filter
     const filter = {};
@@ -85,20 +88,22 @@ exports.getAllInvestments = async (req, res) => {
     // Calculate pagination
     const skip = (page - 1) * limit;
 
-    // Get investments with pagination
+    // Get investments with pagination - populate to match frontend needs
     const investments = await Investment.find(filter)
       .populate("userId", "name email phone")
       .populate("planId", "name duration dailyReturn")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean(); // Use lean for better performance
 
     // Get total count
     const total = await Investment.countDocuments(filter);
 
+    // Frontend expects "investments" array directly
     res.status(200).json({
       success: true,
-      investments,
+      investments, // This matches frontend: result.investments
       pagination: {
         total,
         page: parseInt(page),
@@ -254,51 +259,176 @@ exports.updateInvestmentStatus = async (req, res) => {
 // Process daily returns (Cron job or Admin trigger)
 exports.processDailyReturns = async (req, res) => {
   try {
+    console.log("Processing daily returns - Manual trigger");
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // Find all active investments
     const activeInvestments = await Investment.find({ status: "active" });
 
+    console.log(
+      `Found ${activeInvestments.length} active investments to process`
+    );
+
     let processedCount = 0;
     let completedCount = 0;
+    let skippedCount = 0;
+    const details = [];
 
     for (const investment of activeInvestments) {
+      const investmentDetail = {
+        id: investment._id,
+        previousEarned: investment.totalEarned,
+        dailyReturn: investment.dailyReturn,
+      };
+
       // Check if already credited today
       if (
         investment.lastCreditedAt &&
         new Date(investment.lastCreditedAt).setHours(0, 0, 0, 0) >=
           today.getTime()
       ) {
-        continue; // Already credited today
+        skippedCount++;
+        investmentDetail.action = "skipped";
+        investmentDetail.reason = "Already credited today";
+        details.push(investmentDetail);
+        continue;
       }
 
       // Check if investment has ended
       if (new Date(investment.investmentEnd) <= new Date()) {
         investment.status = "completed";
         investment.lastStatusChangeAt = new Date();
+        await investment.save();
         completedCount++;
+        investmentDetail.action = "completed";
+        investmentDetail.newEarned = investment.totalEarned;
+        details.push(investmentDetail);
+        console.log(`Investment ${investment._id} marked as completed`);
       } else {
         // Credit daily return
         investment.totalEarned += investment.dailyReturn;
         investment.lastCreditedAt = new Date();
+        await investment.save();
         processedCount++;
+        investmentDetail.action = "processed";
+        investmentDetail.newEarned = investment.totalEarned;
+        details.push(investmentDetail);
+        console.log(
+          `Credited ${investment.dailyReturn} to investment ${investment._id}. New total: ${investment.totalEarned}`
+        );
       }
-
-      await investment.save();
     }
 
-    res.status(200).json({
+    const response = {
       success: true,
       message: "Daily returns processed successfully",
-      processed: processedCount,
-      completed: completedCount,
-    });
+      summary: {
+        total: activeInvestments.length,
+        processed: processedCount,
+        completed: completedCount,
+        skipped: skippedCount,
+      },
+      timestamp: new Date(),
+      details: details,
+    };
+
+    console.log("Processing complete:", response.summary);
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Process daily returns error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to process daily returns",
+      error: error.message,
+    });
+  }
+};
+
+// Catch up missed days for investments
+exports.catchUpMissedReturns = async (req, res) => {
+  try {
+    console.log("Starting catch-up process for missed returns...");
+
+    const activeInvestments = await Investment.find({ status: "active" });
+
+    let totalProcessed = 0;
+    let totalCredited = 0;
+    const details = [];
+
+    for (const investment of activeInvestments) {
+      const startDate = new Date(investment.investmentStart);
+      startDate.setHours(0, 0, 0, 0);
+
+      const lastCredited = investment.lastCreditedAt
+        ? new Date(investment.lastCreditedAt)
+        : new Date(startDate.getTime() - 24 * 60 * 60 * 1000); // Day before start
+      lastCredited.setHours(0, 0, 0, 0);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Calculate days that should have been credited
+      const daysSinceStart = Math.floor(
+        (today - startDate) / (1000 * 60 * 60 * 24)
+      );
+      const daysSinceLastCredit = Math.floor(
+        (today - lastCredited) / (1000 * 60 * 60 * 1000)
+      );
+
+      // Only credit days since start (not before investment was created)
+      const daysToCredit = Math.min(daysSinceLastCredit, daysSinceStart);
+
+      if (daysToCredit > 0) {
+        const amountToCredit = investment.dailyReturn * daysToCredit;
+        const previousEarned = investment.totalEarned;
+
+        investment.totalEarned += amountToCredit;
+        investment.lastCreditedAt = new Date();
+        await investment.save();
+
+        totalProcessed++;
+        totalCredited += amountToCredit;
+
+        details.push({
+          investmentId: investment._id,
+          planId: investment.planId,
+          daysToCredit,
+          dailyReturn: investment.dailyReturn,
+          amountCredited: amountToCredit,
+          previousEarned,
+          newEarned: investment.totalEarned,
+          startDate: investment.investmentStart,
+          lastCreditedBefore: investment.lastCreditedAt ? lastCredited : null,
+        });
+
+        console.log(
+          `Credited ${daysToCredit} days (${amountToCredit}) to investment ${investment._id}. New total: ${investment.totalEarned}`
+        );
+      } else {
+        console.log(
+          `Investment ${investment._id} is up to date - no catch-up needed`
+        );
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Catch-up completed successfully",
+      summary: {
+        totalInvestments: activeInvestments.length,
+        investmentsProcessed: totalProcessed,
+        totalAmountCredited: totalCredited,
+      },
+      details,
+    });
+  } catch (error) {
+    console.error("Catch-up error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to catch up missed returns",
       error: error.message,
     });
   }

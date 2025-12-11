@@ -25,3 +25,14 @@ exports.protect = (req, res, next) => {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+exports.authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.admin.role)) {
+      return res
+        .status(403)
+        .json({ message: "You do not have permission to perform this action" });
+    }
+    next();
+  };
+};

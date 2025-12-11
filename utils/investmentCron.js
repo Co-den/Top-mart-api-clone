@@ -5,7 +5,7 @@ const logger = require("../utils/logger");
 // Function to process daily returns
 const processDailyReturns = async () => {
   try {
-    console.log("Starting daily returns processing...");
+    logger.info("Starting daily returns processing...");
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -44,7 +44,7 @@ const processDailyReturns = async () => {
         await investment.save();
         processedCount++;
         logger.info(
-          `Credited ${investment.dailyReturn} to investment ${investment._id}`
+          `Credited ${investment.dailyReturn} to investment ${investment._id}. New total: ${investment.totalEarned}`
         );
       }
     }
@@ -53,7 +53,8 @@ const processDailyReturns = async () => {
       - Processed: ${processedCount}
       - Completed: ${completedCount}
       - Skipped: ${skippedCount}
-    );`);
+    `);
+
     return {
       success: true,
       processed: processedCount,
@@ -71,16 +72,35 @@ const processDailyReturns = async () => {
 
 // Schedule cron job to run daily at midnight
 const startInvestmentCron = () => {
-  // Run every day at 12:01 AM
-  cron.schedule("1 0 * * *", async () => {
-    logger.info("Running scheduled daily returns processing...");
-    await processDailyReturns();
-  });
+  // Run every day at 12:01 AM UTC
+  cron.schedule(
+    "1 0 * * *",
+    async () => {
+      logger.info(
+        "🔔 CRON TRIGGERED - Running scheduled daily returns processing..."
+      );
+      const result = await processDailyReturns();
+      logger.info("🔔 CRON COMPLETED", result);
+    },
+    {
+      scheduled: true,
+      timezone: "UTC",
+    }
+  );
 
-  logger.info("Investment cron job scheduled - runs daily at 12:01 AM");
+  logger.info("Investment cron job scheduled - runs daily at 12:01 AM UTC");
+
+  // Log next scheduled run
+  const now = new Date();
+  const nextRun = new Date(now);
+  nextRun.setUTCHours(0, 1, 0, 0);
+  if (nextRun <= now) {
+    nextRun.setUTCDate(nextRun.getUTCDate() + 1);
+  }
+  logger.info(`Next scheduled run: ${nextRun.toISOString()}`);
 };
 
-
+// Alternative using setInterval
 const startInvestmentInterval = () => {
   // Calculate milliseconds until next midnight
   const now = new Date();
@@ -112,10 +132,12 @@ const startInvestmentInterval = () => {
   );
 };
 
+// Test cron - runs every minute (FOR TESTING ONLY)
 const startTestCron = () => {
   cron.schedule("* * * * *", async () => {
-    logger.info("Running TEST daily returns processing...");
-    await processDailyReturns();
+    logger.info("🧪 TEST MODE - Running daily returns processing...");
+    const result = await processDailyReturns();
+    logger.info("🧪 TEST COMPLETED", result);
   });
 
   logger.info("TEST MODE: Processing returns every minute");

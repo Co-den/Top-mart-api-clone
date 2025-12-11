@@ -1,50 +1,87 @@
 const express = require("express");
 const router = express.Router();
-const investmentController = require("../controllers/InvestmentController");
-const onlyUser = require("../auth/authController");
+const investmentController = require("../controllers/investmentController");
 const onlyAdmin = require("../auth/adminAuthController");
-const { processDailyReturns } = require("../utils/investmentCron");
+const onlyUser = require("../auth/authController");
 
-router.get("/", onlyAdmin.protect, investmentController.getAllInvestments);
-router.post("/", onlyAdmin.protect, investmentController.createInvestment);
-router.get("/:id", onlyUser.protect, investmentController.getUserInvestments);
-router.get("/:id", onlyUser.protect, investmentController.getInvestment);
-router.put(
-  "/:id",
-  onlyAdmin.protect,
-  investmentController.updateInvestmentStatus
+// =================================================================
+// USER ROUTES - Require authentication
+// =================================================================
+
+// Create new investment
+router.post("/", onlyUser.protect, investmentController.createInvestment);
+
+// Get current user's investments
+router.get(
+  "/my-investments",
+  onlyUser.protect,
+  investmentController.getUserInvestments
 );
-router.delete("/:id", onlyAdmin.protect, investmentController.deleteInvestment);
-router.post(
-  "/cancel/:id",
+
+// Get single investment by ID
+router.get("/:id", onlyUser.protect, investmentController.getInvestment);
+
+// Cancel investment (user can cancel their own)
+router.put(
+  "/:id/cancel",
   onlyUser.protect,
   investmentController.cancelInvestment
 );
-router.post(
-  "/update-status/:id",
+
+// =================================================================
+// ADMIN ROUTES - Require admin role
+// =================================================================
+
+// Get all investments (with pagination and filters)
+router.get(
+  "/",
   onlyAdmin.protect,
+  onlyAdmin.authorize("admin"),
+  investmentController.getAllInvestments
+);
+
+// Update investment status
+router.put(
+  "/:id/status",
+  onlyAdmin.protect,
+  onlyAdmin.authorize("admin"),
   investmentController.updateInvestmentStatus
 );
 
+// Delete investment
+router.delete(
+  "/:id",
+  onlyAdmin.protect,
+  onlyAdmin.authorize("admin"),
+  investmentController.deleteInvestment
+);
+
+// Get investment statistics
+router.get(
+  "/stats/overview",
+  onlyAdmin.protect,
+  onlyAdmin.authorize("admin"),
+  investmentController.getInvestmentStats
+);
+
+// =================================================================
+// AUTOMATION ROUTES - Admin only
+// =================================================================
+
+// Manually trigger daily returns processing
 router.post(
   "/process-returns",
   onlyAdmin.protect,
-  async (req, res) => {
-    try {
-      const result = await processDailyReturns();
-      res.status(200).json({
-        success: result.success,
-        message: "Daily returns processing completed",
-        ...result,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Failed to process daily returns",
-        error: error.message,
-      });
-    }
-  }
+  onlyAdmin.authorize("admin"),
+  investmentController.processDailyReturns
+);
+
+// Catch up missed returns (for investments that missed daily credits)
+router.post(
+  "/catch-up-returns",
+  onlyAdmin.protect,
+  onlyAdmin.authorize("admin"),
+  investmentController.catchUpMissedReturns
 );
 
 module.exports = router;
