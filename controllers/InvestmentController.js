@@ -1,7 +1,6 @@
 const Investment = require("../model/InvestmentModel");
 const Plan = require("../model/PlanModel");
 
-
 // Create a new investment
 exports.createInvestment = async (req, res) => {
   try {
@@ -348,11 +347,14 @@ exports.processDailyReturns = async (req, res) => {
 };
 
 // Catch up missed days for investments
+// Catch up missed days for investments
 exports.catchUpMissedReturns = async (req, res) => {
   try {
     console.log("Starting catch-up process for missed returns...");
 
     const activeInvestments = await Investment.find({ status: "active" });
+
+    console.log(`Found ${activeInvestments.length} active investments`);
 
     let totalProcessed = 0;
     let totalCredited = 0;
@@ -364,22 +366,32 @@ exports.catchUpMissedReturns = async (req, res) => {
 
       const lastCredited = investment.lastCreditedAt
         ? new Date(investment.lastCreditedAt)
-        : new Date(startDate.getTime() - 24 * 60 * 60 * 1000); // Day before start
+        : new Date(startDate.getTime() - 24 * 60 * 60 * 1000);
       lastCredited.setHours(0, 0, 0, 0);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Calculate days that should have been credited
+      console.log("Investment:", investment._id);
+      console.log("Start date:", startDate.toISOString());
+      console.log("Last credited:", lastCredited.toISOString());
+      console.log("Today:", today.toISOString());
+
+      // Calculate days to credit
       const daysSinceStart = Math.floor(
         (today - startDate) / (1000 * 60 * 60 * 24)
       );
       const daysSinceLastCredit = Math.floor(
-        (today - lastCredited) / (1000 * 60 * 60 * 1000)
+        (today - lastCredited) / (1000 * 60 * 60 * 24)
       );
+
+      console.log("Days since start:", daysSinceStart);
+      console.log("Days since last credit:", daysSinceLastCredit);
 
       // Only credit days since start (not before investment was created)
       const daysToCredit = Math.min(daysSinceLastCredit, daysSinceStart);
+
+      console.log("Days to credit:", daysToCredit);
 
       if (daysToCredit > 0) {
         const amountToCredit = investment.dailyReturn * daysToCredit;
@@ -395,21 +407,21 @@ exports.catchUpMissedReturns = async (req, res) => {
         details.push({
           investmentId: investment._id,
           planId: investment.planId,
+          startDate: investment.investmentStart,
+          lastCreditedBefore: lastCredited,
           daysToCredit,
           dailyReturn: investment.dailyReturn,
           amountCredited: amountToCredit,
           previousEarned,
           newEarned: investment.totalEarned,
-          startDate: investment.investmentStart,
-          lastCreditedBefore: investment.lastCreditedAt ? lastCredited : null,
         });
 
         console.log(
-          `Credited ${daysToCredit} days (${amountToCredit}) to investment ${investment._id}. New total: ${investment.totalEarned}`
+          `✅ Credited ${daysToCredit} days (${amountToCredit}) to investment ${investment._id}. New total: ${investment.totalEarned}`
         );
       } else {
         console.log(
-          `Investment ${investment._id} is up to date - no catch-up needed`
+          `⏭️ Investment ${investment._id} is up to date - no catch-up needed`
         );
       }
     }
