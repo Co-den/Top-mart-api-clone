@@ -18,7 +18,6 @@ const { startInvestmentCron } = require("./utils/investmentCron");
 const logger = require("./utils/logger");
 const Admin = require("./model/AdminModel");
 
-
 // Enable CORS
 const allowedOrigins = [
   "http://localhost:3000",
@@ -56,11 +55,13 @@ app.use(cookieParser());
 dotenv.config({ path: "./config.env" });
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date(),
-    uptime: process.uptime()
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    message: "Server is running",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || "development",
   });
 });
 
@@ -103,7 +104,6 @@ app.use("/api/withdrawal", withdrawRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/investments", investmentRoutes);
 app.use("/api/approval", approvalRoutes);
-
 
 // Paystack webhook route
 app.post(
