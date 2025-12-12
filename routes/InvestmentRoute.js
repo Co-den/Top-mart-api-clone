@@ -88,15 +88,7 @@ router.post(
 
 router.post(
   "/cron-trigger",
-  (req, res, next) => {
-    // Verify secret key instead of admin auth
-    const cronSecret = req.headers["x-cron-secret"];
-    if (cronSecret !== process.env.CRON_SECRET) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-    next();
-  },
-  investmentController.processDailyReturns
+  investmentController.cronTrigger
 );
 
 module.exports = router;

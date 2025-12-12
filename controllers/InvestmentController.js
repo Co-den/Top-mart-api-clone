@@ -1,5 +1,7 @@
 const Investment = require("../model/InvestmentModel");
 const Plan = require("../model/PlanModel");
+const dotenv = require("dotenv");
+dotenv.config({ path: "./config.env" });
 
 // Create a new investment
 exports.createInvestment = async (req, res) => {
@@ -577,6 +579,88 @@ exports.getInvestmentStats = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch investment statistics",
+      error: error.message,
+    });
+  }
+};
+
+// Cron job trigger for daily returns processing
+exports.cronTrigger = async (req, res) => {
+  try {
+    // Verify cron secret
+    const cronSecret = req.headers["x-cron-secret"];
+
+    if (cronSecret !== process.env.CRON_SECRET) {
+      console.log("❌ Unauthorized cron trigger attempt");
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    console.log("✅ Authorized cron trigger received");
+
+    // Process daily returns
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeInvestments = await Investment.find({ status: "active" });
+
+    console.log(
+      `Found ${activeInvestments.length} active investments to process`
+    );
+
+    let processedCount = 0;
+    let completedCount = 0;
+    let skippedCount = 0;
+
+    for (const investment of activeInvestments) {
+      if (
+        investment.lastCreditedAt &&
+        new Date(investment.lastCreditedAt).setHours(0, 0, 0, 0) >=
+          today.getTime()
+      ) {
+        skippedCount++;
+        continue;
+      }
+
+      if (new Date(investment.investmentEnd) <= new Date()) {
+        investment.status = "completed";
+        investment.lastStatusChangeAt = new Date();
+        await investment.save();
+        completedCount++;
+        console.log(`Investment ${investment._id} marked as completed`);
+      } else {
+        investment.totalEarned += investment.dailyReturn;
+        investment.lastCreditedAt = new Date();
+        await investment.save();
+        processedCount++;
+        console.log(
+          `Credited ${investment.dailyReturn} to investment ${investment._id}`
+        );
+      }
+    }
+
+    const response = {
+      success: true,
+      message: "Cron job executed successfully",
+      summary: {
+        total: activeInvestments.length,
+        processed: processedCount,
+        completed: completedCount,
+        skipped: skippedCount,
+      },
+      timestamp: new Date(),
+    };
+
+    console.log("✅ Cron processing complete:", response.summary);
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Cron trigger error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to process daily returns",
       error: error.message,
     });
   }
