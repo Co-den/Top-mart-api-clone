@@ -587,8 +587,7 @@ exports.getInvestmentStats = async (req, res) => {
 // Cron job trigger for daily returns processing
 exports.cronTrigger = async (req, res) => {
   try {
-    // Verify cron secret
-    const cronSecret = req.headers["x-cron-secret"];
+    const cronSecret = req.query.secret || req.headers["x-cron-secret"];
 
     if (cronSecret !== process.env.CRON_SECRET) {
       console.log("❌ Unauthorized cron trigger attempt");
@@ -598,11 +597,7 @@ exports.cronTrigger = async (req, res) => {
       });
     }
 
-    console.log("✅ Authorized cron trigger received");
-
-    // Process daily returns
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    console.log("✅ Cron triggered at:", new Date().toISOString());
 
     const activeInvestments = await Investment.find({ status: "active" });
 
@@ -613,31 +608,72 @@ exports.cronTrigger = async (req, res) => {
     let processedCount = 0;
     let completedCount = 0;
     let skippedCount = 0;
+    const details = [];
 
     for (const investment of activeInvestments) {
-      if (
-        investment.lastCreditedAt &&
-        new Date(investment.lastCreditedAt).setHours(0, 0, 0, 0) >=
-          today.getTime()
-      ) {
-        skippedCount++;
-        continue;
+      console.log("\n=== Processing Investment ===");
+      console.log("Investment ID:", investment._id);
+      console.log("Current totalEarned:", investment.totalEarned);
+      console.log("lastCreditedAt:", investment.lastCreditedAt);
+
+      let shouldCredit = true;
+
+      // Check if already credited today
+      if (investment.lastCreditedAt) {
+        const lastCredited = new Date(investment.lastCreditedAt);
+        const now = new Date();
+
+        // Check if lastCreditedAt is today by comparing date strings
+        const lastCreditedDate = lastCredited.toISOString().split("T")[0];
+        const todayDate = now.toISOString().split("T")[0];
+
+        console.log("Last credited date:", lastCreditedDate);
+        console.log("Today date:", todayDate);
+
+        if (lastCreditedDate === todayDate) {
+          shouldCredit = false;
+          skippedCount++;
+          console.log("⏭️ SKIPPED - Already credited today");
+          details.push({
+            investmentId: investment._id,
+            action: "skipped",
+            reason: "Already credited today",
+            lastCreditedAt: investment.lastCreditedAt,
+          });
+          continue;
+        }
       }
 
+      // Check if investment has ended
       if (new Date(investment.investmentEnd) <= new Date()) {
         investment.status = "completed";
         investment.lastStatusChangeAt = new Date();
         await investment.save();
         completedCount++;
-        console.log(`Investment ${investment._id} marked as completed`);
-      } else {
+        console.log("✅ COMPLETED - Investment ended");
+        details.push({
+          investmentId: investment._id,
+          action: "completed",
+        });
+      } else if (shouldCredit) {
+        // Credit daily return
+        const previousEarned = investment.totalEarned;
         investment.totalEarned += investment.dailyReturn;
         investment.lastCreditedAt = new Date();
         await investment.save();
         processedCount++;
-        console.log(
-          `Credited ${investment.dailyReturn} to investment ${investment._id}`
-        );
+        console.log("💰 CREDITED");
+        console.log("Previous earned:", previousEarned);
+        console.log("New earned:", investment.totalEarned);
+        console.log("Amount credited:", investment.dailyReturn);
+
+        details.push({
+          investmentId: investment._id,
+          action: "processed",
+          previousEarned,
+          newEarned: investment.totalEarned,
+          amountCredited: investment.dailyReturn,
+        });
       }
     }
 
@@ -650,14 +686,15 @@ exports.cronTrigger = async (req, res) => {
         completed: completedCount,
         skipped: skippedCount,
       },
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
+      details,
     };
 
-    console.log("✅ Cron processing complete:", response.summary);
+    console.log("\n✅ Cron processing complete:", response.summary);
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Cron trigger error:", error);
+    console.error("❌ Cron trigger error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to process daily returns",
