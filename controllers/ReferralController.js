@@ -27,7 +27,7 @@ exports.getReferralInfo = async (req, res) => {
       success: true,
       referralInfo: {
         referralCode: user.referralCode,
-        referralLink: `https://top-m-gvue.vercel.app/register?ref=${user.referralCode}`,
+        referralLink: `https://top-m-gvue.vercel.app/signup?ref=${user.referralCode}`,
         totalReferrals: user.totalReferrals || 0,
         referralBonus: user.referralBonus || 0,
         totalEarnings: user.referralEarnings || 0,
