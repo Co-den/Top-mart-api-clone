@@ -11,74 +11,93 @@ const generateUniqueId = () => {
   return `${letters}${number}`;
 };
 
-const userSchema = new mongoose.Schema({
-  fullName: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  phoneNumber: {
-    type: Number,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 8,
-  },
-  confirmPassword: {
-    type: String,
-    required: [true, "Please confirm your password"],
-    validate: {
-      validator: function (el) {
-        return el === this.password;
+const userSchema = new mongoose.Schema(
+  {
+    fullName: {
+      type: String,
+      required: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    phoneNumber: {
+      type: Number,
+      required: true,
+      unique: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 8,
+    },
+    confirmPassword: {
+      type: String,
+      required: [true, "Please confirm your password"],
+      validate: {
+        validator: function (el) {
+          return el === this.password;
+        },
+        message: "Passwords do not match",
       },
-      message: "Passwords do not match",
+    },
+    passwordChangedAt: {
+      type: Date,
+    },
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
+    account: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
+    uniqueId: { type: String, unique: true, default: generateUniqueId },
+    bankAccount: {
+      bankName: { type: String },
+      accountNumber: { type: String },
+      accountName: { type: String },
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin", "superadmin"],
+      default: "user",
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    referredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    referralBonus: {
+      type: Number,
+      default: 0,
+    },
+    totalReferrals: {
+      type: Number,
+      default: 0,
+    },
+    referralEarnings: {
+      type: Number,
+      default: 0,
     },
   },
-  referralCode: {
-    type: String,
-    required: false,
-    unique: true,
-  },
-  passwordChangedAt: {
-    type: Date,
-  },
-  passwordResetToken: {
-    type: String,
-    select: false,
-  },
-  passwordResetExpires: {
-    type: Date,
-    select: false,
-  },
-  account: { type: mongoose.Schema.Types.ObjectId, ref: "Account" },
-  uniqueId: { type: String, unique: true, default: generateUniqueId },
-  bankAccount: {
-    bankName: { type: String },
-    accountNumber: { type: String },
-    accountName: { type: String },
-  },
-  status: {
-    type: String,
-    enum: ["pending", "approved", "rejected"],
-    default: "pending",
-  },
-  role: {
-    type: String,
-    enum: ["user", "admin", "superadmin"],
-    default: "user",
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true }
+);
 
 userSchema.pre("save", async function (next) {
   // Only run this function if password was actually modified
@@ -125,6 +144,37 @@ userSchema.methods.createPasswordResetToken = function () {
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000; // (10 minutes)
   return resetToken;
 };
+
+// Generate unique referral code before saving
+userSchema.pre("save", async function (next) {
+  if (!this.referralCode) {
+    this.referralCode = await generateUniqueReferralCode();
+  }
+  next();
+});
+
+// function to generate unique referral code
+const generateUniqueReferralCode = async () => {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code;
+  let isUnique = false;
+
+  while (!isUnique) {
+    code = "";
+    for (let i = 0; i < 6; i++) {
+      code += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+
+    const existingUser = await mongoose
+      .model("User")
+      .findOne({ referralCode: code });
+    if (!existingUser) {
+      isUnique = true;
+    }
+  }
+
+  return code;
+}
 
 // Create and export the User model
 const User = mongoose.model("User", userSchema);

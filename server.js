@@ -9,11 +9,12 @@ const authRoutes = require("./routes/AuthRoute");
 const adminRoutes = require("./routes/AdminRoute");
 const bankRoutes = require("./routes/BankRoutes");
 const withdrawRoutes = require("./routes/WithdrawRoute");
-const { paystackWebhook } = require("./controllers/PaystackWebhookController");
+const referralRoutes = require("./routes/referralRoutes");
 const depositRoutes = require("./routes/DepositRoute");
 const investmentRoutes = require("./routes/InvestmentRoute");
 const plansRoutes = require("./routes/PlanRoute");
 const approvalRoutes = require("./routes/ApprovalRoute");
+const { paystackWebhook } = require("./controllers/PaystackWebhookController");
 const { startInvestmentCron } = require("./utils/investmentCron");
 const logger = require("./utils/logger");
 const Admin = require("./model/AdminModel");
@@ -104,6 +105,7 @@ app.use("/api/withdrawal", withdrawRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/investments", investmentRoutes);
 app.use("/api/approval", approvalRoutes);
+app.use("/api/referrals", referralRoutes);
 
 // Paystack webhook route
 app.post(

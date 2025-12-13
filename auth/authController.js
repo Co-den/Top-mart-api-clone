@@ -32,7 +32,11 @@ const createSendToken = (user, statusCode, req, res, account = null) => {
     status: "success",
     token,
     data: {
-      user,
+      user: {
+        ...user._doc,
+        referralCode: user.referralCode,
+        referralLink: `https://top-m-gvue.vercel.app/register?ref=${user.referralCode}`,
+      },
     },
   };
 
@@ -51,7 +55,6 @@ const createSendToken = (user, statusCode, req, res, account = null) => {
 // User signup
 exports.register = async (req, res) => {
   try {
-    // basic required fields validation
     const {
       fullName,
       email,
@@ -60,25 +63,69 @@ exports.register = async (req, res) => {
       confirmPassword,
       referralCode,
     } = req.body;
+
     if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+
+    // Handle referral code if provided (OPTIONAL)
+    let referrer = null;
+    if (referralCode && referralCode.trim() !== "") {
+      referrer = await User.findOne({
+        referralCode: referralCode.toUpperCase().trim(),
+      });
+
+      // Only reject if they provided a code but it's invalid
+      // If they don't provide a code, that's fine
+      if (!referrer) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid referral code: ${referralCode}`,
+        });
+      }
+    }
+
+    // Create new user (don't pass referralCode to create, it will be auto-generated)
     const newUser = await User.create({
       fullName,
       email,
       phoneNumber,
       password,
       confirmPassword,
-      referralCode,
+      referredBy: referrer ? referrer._id : null,
       role: "user",
     });
 
-    // generate an email verification token (plain token returned for email link)
+    // Credit referral bonus to referrer AFTER user is created
+    if (referrer) {
+      // Update referrer's account
+      const referrerAccount = await Account.findOne({ user: referrer._id });
+      if (referrerAccount) {
+        referrerAccount.bonus += 1000;
+        await referrerAccount.save();
+      }
+
+      // Update referrer's stats
+      referrer.referralBonus = (referrer.referralBonus || 0) + 1000;
+      referrer.referralEarnings = (referrer.referralEarnings || 0) + 1000;
+      referrer.totalReferrals = (referrer.totalReferrals || 0) + 1;
+      await referrer.save({ validateBeforeSave: false });
+
+      console.log(
+        `✅ Referral bonus credited: User ${referrer.fullName} (${referrer.referralCode}) earned 1000 from referral ${newUser.fullName} (${newUser.email})`
+      );
+    }
+
+    // Generate an email verification token
     const verificationToken = crypto.randomBytes(32).toString("hex");
-    // store hashed token + expiry on user model if your model expects that; here we save plain token fields
     newUser.emailVerificationToken = verificationToken;
-    newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    newUser.emailVerificationExpires = Date.now() + 10 * 60 * 1000;
     await newUser.save({ validateBeforeSave: false });
 
     // Create account with signup bonus
@@ -93,13 +140,12 @@ exports.register = async (req, res) => {
     newUser.account = account._id;
     await newUser.save({ validateBeforeSave: false });
 
-    // Send welcome email in background (fire-and-forget) so registration is fast
+    // Send welcome email in background
     try {
       const verificationUrl = `${req.protocol}://${req.get(
         "host"
       )}/verify-email?token=${verificationToken}`;
 
-      // Do not await -- let it run in the background. Log errors when they occur.
       sendSignupEmail(newUser.email, {
         name: newUser.fullName,
         verificationUrl,
@@ -114,15 +160,18 @@ exports.register = async (req, res) => {
           );
         });
     } catch (emailErr) {
-      // defensive: if something synchronously throws, log and continue
       console.error(
         "Failed to queue signup email:",
         emailErr.message || emailErr
       );
     }
+
+    // Send account creation email
     sendAccountCreationEmail(newUser.email, {
       name: newUser.fullName,
       accountId: account._id,
+      referralCode: newUser.referralCode, // Include their new referral code
+      referralLink: `https://top-mart.shop/register?ref=${newUser.referralCode}`, // Include link
     })
       .then(() => {
         console.log(`Account creation email sent to ${newUser.email}`);
@@ -134,8 +183,14 @@ exports.register = async (req, res) => {
         );
       });
 
+    console.log(
+      `✅ New user registered: ${newUser.fullName} with referral code: ${newUser.referralCode}`
+    );
+
     createSendToken(newUser, 201, req, res, account);
   } catch (error) {
+    console.error("Registration error:", error);
+
     // handle duplicate key (unique) errors and validation errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
@@ -148,7 +203,7 @@ exports.register = async (req, res) => {
   }
 };
 
-//user login
+// User login
 exports.login = async (req, res) => {
   const { phoneNumber, password } = req.body;
 
