@@ -17,7 +17,7 @@ router.get(
 router.post(
   "/withdraw-bonus",
   userAuth.protect,
-  userAuth.authorize("admin"),
+  userAuth.restrictTo("user"),
   referralController.withdrawReferralBonus
 );
 
