@@ -11,17 +11,21 @@ router.get("/validate/:code", referralController.validateReferralCode);
 router.get(
   "/my-referrals",
   userAuth.protect,
-  userAuth.authorize,
+  userAuth.restrictTo("user"),
   referralController.getReferralInfo
 );
 router.post(
   "/withdraw-bonus",
   userAuth.protect,
-  userAuth.authorize,
+  userAuth.authorize("admin"),
   referralController.withdrawReferralBonus
 );
 
 // Admin routes
-router.get("/stats", adminAuth.authorize, referralController.getReferralStats);
+router.get(
+  "/stats",
+  adminAuth.authorize("admin"),
+  referralController.getReferralStats
+);
 
 module.exports = router;
