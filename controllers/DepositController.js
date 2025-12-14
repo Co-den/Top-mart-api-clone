@@ -69,7 +69,6 @@ exports.uploadProof = async (req, res) => {
   }
 };
 
-
 exports.approveDeposit = async (req, res) => {
   try {
     const { depositId } = req.params;
@@ -149,3 +148,61 @@ exports.getAllDeposits = async (req, res) => {
 };
 
 
+
+exports.getDeposits = async (req, res) => {
+  try {
+    console.log("Fetching deposits for user:", req.user.id);
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        status: "error",
+        message: "User not authenticated",
+      });
+    }
+
+    const deposits = await Deposit.find({ user: req.user.id })
+      .populate("account", "bankName accountNumber accountName")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log("Found deposits:", deposits.length);
+
+    if (deposits.length > 0) {
+      console.log("Sample deposit:", deposits[0]);
+    }
+
+    const formattedDeposits = deposits.map((deposit) => ({
+      id: deposit._id,
+      amount: deposit.amount,
+      date: new Date(deposit.createdAt).toISOString().split("T")[0],
+      status: deposit.status,
+      reference:
+        deposit.reference ||
+        `DEP-${deposit._id.toString().slice(-6).toUpperCase()}`,
+      // Method should come from the meta object or default
+      method:
+        deposit.meta?.method || deposit.meta?.paymentMethod || "Bank Transfer",
+      // Optional: Include account details if there is a need though not in original request
+      accountDetails: deposit.account
+        ? {
+            bankName: deposit.account.bankName,
+            accountNumber: deposit.account.accountNumber,
+            accountName: deposit.account.accountName,
+          }
+        : null,
+    }));
+
+    return res.status(200).json({
+      status: "success",
+      data: formattedDeposits,
+    });
+  } catch (error) {
+    console.error("Error in getDeposits:", error.message);
+    console.error("Stack:", error.stack);
+
+    return res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
+  }
+};

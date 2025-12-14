@@ -30,11 +30,7 @@ router.put(
 // Delete user account
 router.delete("/:id", adminAuthser.protect, UserController.deleteUserAccount);
 
-router.get("/user-deposits", userAuth.protect, UserController.getDeposits);
-router.get(
-  "/user-withdrawals",
-  userAuth.protect,
-  UserController.getWithdrawals
-);
+
+
 
 module.exports = router;

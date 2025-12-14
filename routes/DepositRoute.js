@@ -44,4 +44,10 @@ router.patch(
   dC.rejectDeposit
 );
 
+router.get(
+  "/user-deposits",
+  userAuth.protect,
+  userAuth.restrictTo("user"),
+  dC.getDeposits
+);
 module.exports = router;
