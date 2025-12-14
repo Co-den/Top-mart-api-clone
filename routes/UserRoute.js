@@ -30,9 +30,9 @@ router.put(
 // Delete user account
 router.delete("/:id", adminAuthser.protect, UserController.deleteUserAccount);
 
-router.get("/deposits", AuthController.protect, UserController.getDeposits);
+router.get("/user-deposits", AuthController.protect, UserController.getDeposits);
 router.get(
-  "/withdrawals",
+  "/user-withdrawals",
   AuthController.protect,
   UserController.getWithdrawals
 );
