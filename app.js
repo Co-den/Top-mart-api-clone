@@ -36,6 +36,34 @@ app.all("/", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
+// Enable CORS
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3000/api/auth/register",
+  "http://localhost:3000/api/auth/login",
+  "https://top-mart-api.onrender.com",
+  "https://top-dmtxpqmdq-codens-projects.vercel.app",
+  "https://top-m-gvue-git-main-codens-projects.vercel.app",
+  "https://top-m-gvue.vercel.app",
+  "https://top-mart-api.onrender.com/api/auth/register",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+
 // MOUNTED ROUTES
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -72,32 +100,7 @@ app.post(
   paystackWebhook
 );
 
-// Enable CORS
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:3000/api/auth/register",
-  "http://localhost:3000/api/auth/login",
-  "https://top-mart-api.onrender.com",
-  "https://top-dmtxpqmdq-codens-projects.vercel.app",
-  "https://top-m-gvue-git-main-codens-projects.vercel.app",
-  "https://top-m-gvue.vercel.app",
-  "https://top-mart-api.onrender.com/api/auth/register",
-];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
