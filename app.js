@@ -19,6 +19,8 @@ const plansRoutes = require("./routes/PlanRoute");
 const approvalRoutes = require("./routes/ApprovalRoute");
 const globalErrorHandler = require("./controllers/ErrorController");
 const { paystackWebhook } = require("./controllers/PaystackWebhookController");
+const aiRoutes = require("./routes/AiRoute");
+
 
 // UTILITIES
 const logger = require("./utils/logger");
@@ -75,6 +77,7 @@ app.use("/api/plans", plansRoutes);
 app.use("/api/investments", investmentRoutes);
 app.use("/api/approval", approvalRoutes);
 app.use("/api/referrals", referralRoutes);
+app.use("/api/ai", aiRoutes);
 
 // Seed SuperAdmin account if not exists
 const seedSuperAdmin = async () => {
