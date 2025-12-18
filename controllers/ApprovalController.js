@@ -1,36 +1,50 @@
 const Deposit = require("../model/DepositModel");
-const Investment = require("../model/InvestmentModel");
-const Plan = require("../model/PlanModel");
-const User = require("../model/UserModel");
 const Account = require("../model/AccountModel");
 const { emailUser } = require("../services/NotifyUser");
 
-exports.getPendingUsers = async (req, res) => {
+
+
+// Get all deposits for admin dashboard
+exports.getAllDeposits = async (req, res) => {
   try {
-    // Fetch deposits with BOTH pending and proof-submitted statuses
-    const deposits = await Deposit.find({
-      status: { $in: ["pending", "proof-submitted"] },
-    })
-      .populate("user", "fullName firstName lastName email")
-      .populate("account")
+    const { status } = req.query;
+    
+    let query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const deposits = await Deposit.find(query)
+      .populate('user', 'fullName firstName lastName email')
+      .populate('account')
       .sort({ createdAt: -1 });
 
-    // Map deposits to match your frontend structure
-    const formattedDeposits = deposits.map((deposit) => ({
-      _id: deposit._id,
-      userId: deposit.user,
-      amount: deposit.amount,
-      status: deposit.status,
-      paymentProof: deposit.proof?.url || "",
-      proofUrl: deposit.proof?.url || "",
-      senderName: deposit.proof?.senderName || "",
-      createdAt: deposit.createdAt,
-      submittedAt: deposit.createdAt,
-    }));
+    const formattedDeposits = deposits.map(deposit => {
+      const user = deposit.user || {};
+      
+      return {
+        _id: deposit._id,
+        userId: user,
+        user: user,
+        amount: deposit.amount,
+        status: deposit.status,
+        paymentProof: deposit.proof?.url || "",
+        proofUrl: deposit.proof?.url || "",
+        receiptUrl: deposit.proof?.url || "",
+        proof: {
+          url: deposit.proof?.url || "",
+          senderName: deposit.proof?.senderName || "",
+          originalName: deposit.proof?.originalName || "",
+          filename: deposit.proof?.filename || "",
+        },
+        createdAt: deposit.createdAt,
+        submittedAt: deposit.createdAt,
+      };
+    });
 
     res.json(formattedDeposits);
   } catch (err) {
-    console.error("getPendingUsers error:", err);
+    console.error("getAllDeposits error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

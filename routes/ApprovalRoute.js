@@ -8,7 +8,7 @@ const adminAuth = require("../auth/adminAuthController");
 router.get(
   "/pending-users",
   adminAuth.protect,
-  approvalController.getPendingUsers
+  approvalController.getAllDeposits
 );
 
 router.patch(
