@@ -31,7 +31,7 @@ const upload = multer({
 // User initiates deposit
 router.post("/initiate", userAuth.protect, dC.initializeDeposit);
 
-// User submits proof
+// User submits proof of payment
 router.post(
   "/:depositId/proof",
   userAuth.protect,
