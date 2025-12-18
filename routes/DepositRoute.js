@@ -15,7 +15,7 @@ router.post("/initiate", userAuth.protect, dC.initializeDeposit);
 router.post(
   "/:depositId/proof",
   userAuth.protect,
-  upload.single("file"),
+  upload.single("proof"),
   dC.uploadProof
 );
 
