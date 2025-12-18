@@ -5,7 +5,6 @@ const User = require("../model/UserModel");
 const Account = require("../model/AccountModel");
 const { emailUser } = require("../services/NotifyUser");
 
-
 exports.getPendingUsers = async (req, res) => {
   try {
     // Fetch deposits with BOTH pending and proof-submitted statuses
@@ -41,104 +40,94 @@ exports.approveDeposit = async (req, res) => {
     const { depositId } = req.params;
     const adminId = req.admin.id;
 
-    // Approve payment proof and populate user reference
-    const proof = await Deposit.findOneAndUpdate(
-      { _id: depositId },
-      { status: "approved", reviewedBy: adminId },
-      { new: true }
-    ).populate({
-      path: "user",
-      populate: { path: "account" },
-    });
+    // Find and approve the deposit
+    const deposit = await Deposit.findById(depositId).populate("user");
 
-    if (!proof) {
+    if (!deposit) {
       return res.status(404).json({ message: "Deposit not found" });
     }
 
-    // ensure we have user document
-    const user = proof.user
-      ? proof.user
-      : await User.findById(proof.userId || proof.user).populate("account");
-
-    if (!user) {
-      return res
-        .status(404)
-        .json({ message: "User for this deposit not found" });
+    // Check if deposit has proof submitted
+    if (!deposit.proof || !deposit.proof.url) {
+      return res.status(400).json({
+        message: "Cannot approve deposit without payment proof",
+      });
     }
 
-    // find or create account record, prefer populated account
-    let account = user.account
-      ? typeof user.account === "object"
-        ? user.account
-        : await Account.findById(user.account)
-      : await Account.findOne({ user: user._id });
+    // Check if already approved
+    if (deposit.status === "approved") {
+      return res.status(400).json({
+        message: "Deposit already approved",
+      });
+    }
+
+    // Get user
+    const user = deposit.user;
+    if (!user) {
+      return res.status(404).json({
+        message: "User for this deposit not found",
+      });
+    }
+
+    // Find or create user account
+    let account = await Account.findOne({ user: user._id });
 
     if (!account) {
-      // create account if none exists (defensive)
       account = await Account.create({
         user: user._id,
         balance: 0,
         bonus: 1000,
         currency: "NGN",
       });
-      // link to user
-      user.account = account._id;
-      await user.save({ validateBeforeSave: false });
     }
 
-    // Update account balance with approved deposit amount
-    account.balance = (account.balance || 0) + (proof.amount || 0);
+    // Update account balance
+    const previousBalance = account.balance || 0;
+    account.balance = previousBalance + deposit.amount;
     await account.save();
 
-    // Create investment record if plan exists on deposit
-    let investment = null;
-    if (proof.planId && proof.amount) {
-      const plan = await Plan.findById(proof.planId);
-      if (plan) {
-        const now = new Date();
-        investment = await Investment.create({
-          userId: user._id,
-          planId: plan._id,
-          depositAmount: proof.amount,
-          status: "active",
-          approvedByAdminId: adminId,
-          investmentStart: now,
-          investmentEnd: new Date(
-            now.getTime() + (plan.durationDays || 0) * 24 * 60 * 60 * 1000
-          ),
-          lastStatusChangeAt: now,
-        });
-      }
-    }
+    // Update deposit status
+    deposit.status = "approved";
+    deposit.reviewedBy = adminId;
+    deposit.approvedAt = new Date();
+    await deposit.save();
 
-    // Notify user in background
+    // Send email notification (non-blocking)
     emailUser(user.email, {
-      amount: proof.amount,
-      transactionId: proof._id,
+      amount: deposit.amount,
+      transactionId: deposit._id,
+      previousBalance,
       newBalance: account.balance,
+      senderName: deposit.proof.senderName,
     })
       .then(() => {
-        console.log(`Deposit email sent to ${user.email}`);
+        console.log(`Deposit approval email sent to ${user.email}`);
       })
       .catch((emailErr) => {
-        console.error(
-          "Failed to send deposit email (background):",
-          emailErr.message || emailErr
-        );
+        console.error("Failed to send deposit email:", emailErr.message);
       });
 
     return res.json({
-      message: "Deposit approved and account balance updated",
-      deposit: proof,
+      message: "Deposit approved and account recharged successfully",
+      deposit: {
+        id: deposit._id,
+        amount: deposit.amount,
+        status: deposit.status,
+        proof: deposit.proof,
+      },
       account: {
         id: account._id,
-        balance: account.balance,
+        previousBalance,
+        newBalance: account.balance,
+        amountAdded: deposit.amount,
       },
-      investment,
     });
   } catch (err) {
     console.error("approveDeposit error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
