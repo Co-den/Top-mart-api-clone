@@ -19,6 +19,7 @@ const depositSchema = new mongoose.Schema(
         "successful",
         "rejected",
         "failed",
+        "proof-submitted",
       ],
       default: "pending",
     },
