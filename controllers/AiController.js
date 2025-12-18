@@ -6,7 +6,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const callGemini = async (prompt) => {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Use correct model name
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const result = await model.generateContent(prompt);
 
@@ -32,46 +33,45 @@ const callGemini = async (prompt) => {
 
 exports.aiAssistant = async (req, res) => {
   const { question, planData } = req.body;
+
   if (!question || !planData) {
     return res.status(400).json({ error: "question and planData required" });
   }
 
-  const prompt = `
-You are a concise, friendly user assistant. 
-Answer the user's question using only the information from the product below when possible. 
+  // Fixed: Use planData instead of productData
+  const prompt = `You are a concise, friendly investment assistant. 
+Answer the user's question using only the information from the plan below when possible. 
 If the information is not present, say you don't know and suggest what the user can check.
 
-Product JSON:
-${JSON.stringify(productData, null, 2)}
+Plan Details:
+${JSON.stringify(planData, null, 2)}
 
 User question:
 ${question}
 
-Keep the answer short (1–6 sentences).
-  `;
+Keep the answer short (1-6 sentences).`;
 
   try {
     const text = await callGemini(prompt);
     res.json({ answer: text.trim() });
   } catch (err) {
     console.error("Gemini ask error:", err);
-    res.status(500).json({ answer: "AI request failed" });
+    res.status(500).json({ answer: "AI request failed. Please try again." });
   }
 };
 
 exports.suggestions = async (req, res) => {
-  const { product } = req.body;
-  if (!product) {
-    return res.status(400).json({ error: "product required" });
+  const { plan } = req.body;
+
+  if (!plan) {
+    return res.status(400).json({ error: "plan required" });
   }
 
-  const prompt = `
-You are an e-commerce assistant. Given the plan below, produce an array of 3 short, user-facing questions a shopper might ask about this item.
-Return only a JSON array, e.g. ["Is this ...?", "Does it ...?", "How long ...?"].
+  const prompt = `You are an investment assistant. Given the plan below, produce an array of 3 short, user-facing questions a customer might ask about this investment plan.
+Return only a JSON array, e.g. ["What is the...", "How long...", "Is there..."].
 
-Product:
-${JSON.stringify(product, null, 2)}
-  `;
+Plan:
+${JSON.stringify(plan, null, 2)}`;
 
   try {
     const raw = await callGemini(prompt);
@@ -81,6 +81,7 @@ ${JSON.stringify(product, null, 2)}
       suggestions = JSON.parse(raw);
       if (!Array.isArray(suggestions)) throw new Error("not array");
     } catch {
+      // Fallback parsing
       suggestions = raw
         .split(/\r?\n/)
         .map((line) => line.replace(/^[\-\d\.\)\s"]+/, "").trim())

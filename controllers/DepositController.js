@@ -45,6 +45,11 @@ exports.uploadProof = async (req, res) => {
     const { depositId } = req.params;
     const { senderName } = req.body;
 
+    // Validate depositId format
+    if (!mongoose.Types.ObjectId.isValid(depositId)) {
+      return res.status(400).json({ message: "Invalid deposit ID format" });
+    }
+
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
@@ -146,8 +151,6 @@ exports.getAllDeposits = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
-
 
 exports.getDeposits = async (req, res) => {
   try {
