@@ -40,6 +40,7 @@ exports.initializeDeposit = async (req, res) => {
   }
 };
 
+// controllers/depositController.js
 exports.uploadProof = async (req, res) => {
   try {
     const { depositId } = req.params;
@@ -59,7 +60,7 @@ exports.uploadProof = async (req, res) => {
       return res.status(404).json({ message: "Deposit not found" });
     }
 
-    // Cloudinary file info
+    // Add proof but keep status as "pending"
     deposit.proof = {
       filename: req.file.filename,
       originalName: req.file.originalname,
@@ -67,11 +68,11 @@ exports.uploadProof = async (req, res) => {
       cloudinaryId: req.file.filename,
       senderName,
     };
-    deposit.status = "proof-submitted";
+
     await deposit.save();
 
     res.json({
-      message: "Proof submitted successfully",
+      message: "Proof uploaded successfully. Awaiting admin approval.",
       deposit,
       fileUrl: req.file.path,
     });
