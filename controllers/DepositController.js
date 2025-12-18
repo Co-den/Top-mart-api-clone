@@ -59,15 +59,22 @@ exports.uploadProof = async (req, res) => {
       return res.status(404).json({ message: "Deposit not found" });
     }
 
+    // Cloudinary file info
     deposit.proof = {
       filename: req.file.filename,
       originalName: req.file.originalname,
+      url: req.file.path,
+      cloudinaryId: req.file.filename,
       senderName,
     };
     deposit.status = "proof-submitted";
     await deposit.save();
 
-    res.json({ message: "Proof submitted successfully", deposit });
+    res.json({
+      message: "Proof submitted successfully",
+      deposit,
+      fileUrl: req.file.path,
+    });
   } catch (err) {
     console.error("uploadProof error:", err);
     res.status(500).json({ message: "Server error", error: err.message });

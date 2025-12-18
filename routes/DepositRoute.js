@@ -1,6 +1,8 @@
 // routes/depositRoutes.js
 const express = require("express");
 const router = express.Router();
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../utils/cloudinary");
 const multer = require("multer");
 const dC = require("../controllers/DepositController");
 const adminAuthser = require("../auth/adminAuthController");
@@ -8,12 +10,16 @@ const userAuth = require("../auth/authController");
 const authController = require("../auth/authController");
 
 //multer configuration for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/proofs/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "deposit-proofs",
+    allowed_formats: ["jpg", "jpeg", "png", "pdf"],
+    resource_type: "auto",
+    public_id: (req, file) => {
+      // Generate unique filename
+      return `proof-${Date.now()}-${file.originalname.split(".")[0]}`;
+    },
   },
 });
 
