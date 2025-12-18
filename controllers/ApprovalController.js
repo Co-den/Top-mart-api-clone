@@ -5,17 +5,33 @@ const User = require("../model/UserModel");
 const Account = require("../model/AccountModel");
 const { emailUser } = require("../services/NotifyUser");
 
+
 exports.getPendingUsers = async (req, res) => {
   try {
-    const deposits = await Deposit.find({ status: "pending" })
-      .populate({
-        path: "user",
-        populate: { path: "bankAccount" },
-      })
-      .populate("account");
+    // Fetch deposits with BOTH pending and proof-submitted statuses
+    const deposits = await Deposit.find({
+      status: { $in: ["pending", "proof-submitted"] },
+    })
+      .populate("user", "fullName firstName lastName email")
+      .populate("account")
+      .sort({ createdAt: -1 });
 
-    res.json(deposits);
+    // Map deposits to match your frontend structure
+    const formattedDeposits = deposits.map((deposit) => ({
+      _id: deposit._id,
+      userId: deposit.user,
+      amount: deposit.amount,
+      status: deposit.status,
+      paymentProof: deposit.proof?.url || "",
+      proofUrl: deposit.proof?.url || "",
+      senderName: deposit.proof?.senderName || "",
+      createdAt: deposit.createdAt,
+      submittedAt: deposit.createdAt,
+    }));
+
+    res.json(formattedDeposits);
   } catch (err) {
+    console.error("getPendingUsers error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
