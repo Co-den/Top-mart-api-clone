@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const Admin = require("../model/AdminModel");
 const bcrypt = require("bcrypt");
 require("dotenv").config({ path: "../config.env" });
-
+const logger = require("../utils/logger");
 const createAdmin = async () => {
   try {
     // Connect to database
