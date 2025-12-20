@@ -17,20 +17,6 @@ const AdminSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// VIRTUAL FIELD
-AdminSchema.virtual("confirmPassword").set(function (value) {
-  this._confirmPassword = value;
-});
-
-// VALIDATION using pre-validate hook
-AdminSchema.pre("validate", function (next) {
-  if (this.isModified("password")) {
-    if (this.password !== this._confirmPassword) {
-      this.invalidate("confirmPassword", "Passwords do not match");
-    }
-  }
-  next();
-});
 
 // HASH PASSWORD
 AdminSchema.pre("save", async function (next) {
@@ -47,10 +33,6 @@ AdminSchema.pre("save", function (next) {
   next();
 });
 
-// Compare passwords
-AdminSchema.methods.currentPassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
 
 // Check if password was changed after JWT
 AdminSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
