@@ -1,7 +1,7 @@
 // scripts/createAdmin.js
 const mongoose = require("mongoose");
 const Admin = require("../model/AdminModel");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 require("dotenv").config({ path: "../config.env" });
 
 const createAdmin = async () => {
