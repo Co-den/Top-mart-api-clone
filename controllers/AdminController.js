@@ -39,35 +39,6 @@ const createSendToken = (admin, statusCode, req, res) => {
   });
 };
 
-exports.registerAdmin = async (req, res) => {
-  try {
-    const { fullName, email, phoneNumber, password, confirmPassword } =
-      req.body;
-    if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-
-    const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
-      return res.status(400).json({ message: "Admin already exists" });
-    }
-
-    const newAdmin = await Admin.create({
-      fullName,
-      email,
-      phoneNumber,
-      password,
-      confirmPassword,
-      role: "admin",
-    });
-
-    createSendToken(newAdmin, 201, req, res);
-  } catch (err) {
-    console.error("REGISTER ADMIN ERROR:", err);
-    res.status(500).json({ message: err.message, error: err });
-  }
-};
-
 exports.loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
