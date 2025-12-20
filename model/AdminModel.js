@@ -4,9 +4,7 @@ const bcrypt = require("bcrypt");
 const AdminSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, unique: true, required: true },
-  phoneNumber: { type: String, unique: true, required: true },
   password: { type: String, required: true, minlength: 8 },
-
   role: {
     type: String,
     enum: ["admin", "superadmin"],
