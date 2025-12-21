@@ -3,7 +3,8 @@ const dotenv = require("dotenv");
 dotenv.config({ path: "./config.env" });
 
 const HF_API_KEY = process.env.HF_API_KEY;
-const HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.3";
+const HF_MODEL = "HuggingFaceH4/zephyr-7b-beta";
+
 
 const topMartKnowledgeBase = `
 You are TopMart Support Assistant, a helpful AI for TopMart - a deposit and account management platform.
