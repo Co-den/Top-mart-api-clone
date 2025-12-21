@@ -94,7 +94,8 @@ class OpenAIChatService {
         ],
       });
 
-      const assistantMessage = response.choices[0].message.content;
+      const assistantMessage =
+        response.output_text || "Sorry, I couldn’t generate a response.";
 
       history.push({
         role: "assistant",
