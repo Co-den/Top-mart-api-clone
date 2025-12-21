@@ -1,3 +1,4 @@
+//const { hash } = require("crypto");
 const mongoose = require("mongoose");
 
 const depositSchema = new mongoose.Schema(
@@ -10,6 +11,40 @@ const depositSchema = new mongoose.Schema(
     },
     amount: { type: Number, required: true },
     reference: String,
+    // FRAUD ANALYSIS
+    fraudAnalysis: {
+      riskScore: {
+        type: Number,
+        default: 0,
+      },
+      riskLevel: {
+        type: String,
+        enum: ["LOW", "MEDIUM", "HIGH"],
+        default: "LOW",
+      },
+      flags: [
+        {
+          type: {
+            type: String,
+          },
+          severity: {
+            type: String,
+            enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+          },
+          message: String,
+          relatedDeposit: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Deposit",
+          },
+        },
+      ],
+      recommendation: {
+        type: String,
+        enum: ["APPROVE", "VERIFY", "MANUAL_REVIEW", "REJECT"],
+        default: "APPROVE",
+      },
+      analyzedAt: Date,
+    },
     proof: {
       filename: String,
       originalName: String,
@@ -17,6 +52,7 @@ const depositSchema = new mongoose.Schema(
       cloudinaryId: String,
       senderName: String,
       uploadedAt: { type: Date, default: Date.now },
+      hash: String,
     },
     status: {
       type: String,

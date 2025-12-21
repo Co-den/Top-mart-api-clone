@@ -1,6 +1,8 @@
 const Account = require("../model/AccountModel");
 const Deposit = require("../model/DepositModel");
+const User = require("../model/UserModel");
 const mongoose = require("mongoose");
+const fraudDetectionService = require("../services/fraudDetection");
 
 exports.initializeDeposit = async (req, res) => {
   try {
@@ -40,13 +42,15 @@ exports.initializeDeposit = async (req, res) => {
   }
 };
 
-// controllers/depositController.js
+
+
+// Upload proof of payment
 exports.uploadProof = async (req, res) => {
   try {
     const { depositId } = req.params;
     const { senderName } = req.body;
 
-    // Validate depositId format
+    // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(depositId)) {
       return res.status(400).json({ message: "Invalid deposit ID format" });
     }
@@ -60,25 +64,72 @@ exports.uploadProof = async (req, res) => {
       return res.status(404).json({ message: "Deposit not found" });
     }
 
-    // Add proof but keep status as "pending"
+    // Get user details
+    const user = await User.findById(deposit.user);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update proof
     deposit.proof = {
       filename: req.file.filename,
       originalName: req.file.originalname,
       url: req.file.path,
       cloudinaryId: req.file.filename,
-      senderName,
+      senderName: senderName || "",
+      uploadedAt: new Date(),
     };
 
+    // ✅ RUN FRAUD DETECTION
+    console.log("[Upload Proof] Running fraud detection...");
+    const fraudAnalysis = await fraudDetectionService.analyzeDeposit(
+      deposit,
+      user
+    );
+
+    deposit.fraudAnalysis = fraudAnalysis;
     await deposit.save();
 
+    console.log(
+      `[Upload Proof] Fraud analysis complete: ${fraudAnalysis.riskLevel}`
+    );
+
+    // ALERT IF HIGH RISK
+    if (fraudAnalysis.riskLevel === "HIGH") {
+      console.log("🚨 HIGH RISK DEPOSIT DETECTED:", {
+        depositId: deposit._id,
+        user: user.email,
+        amount: deposit.amount,
+        riskScore: fraudAnalysis.riskScore,
+        flags: fraudAnalysis.flags.map((f) => f.message),
+      });
+
+      // TODO: Send email/SMS alert to admin
+      // await sendAdminAlert({ ... });
+    }
+
     res.json({
-      message: "Proof uploaded successfully. Awaiting admin approval.",
-      deposit,
+      message: "Proof submitted successfully",
       fileUrl: req.file.path,
+      fraudAnalysis: {
+        riskLevel: fraudAnalysis.riskLevel,
+        riskScore: fraudAnalysis.riskScore,
+        recommendation: fraudAnalysis.recommendation,
+      },
     });
-  } catch (err) {
-    console.error("uploadProof error:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+  } catch (error) {
+    console.error("[Upload Proof] Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getFraudStats = async (req, res) => {
+  try {
+    const stats = await fraudDetectionService.getFraudStats();
+    res.json(stats);
+  } catch (error) {
+    console.error("[Fraud Stats] Error:", error);
+    res.status(500).json({ error: "Failed to get fraud stats" });
   }
 };
 
@@ -214,6 +265,83 @@ exports.getDeposits = async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: error.message,
+    });
+  }
+};
+
+exports.getSuggestedAmounts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user's deposit history
+    const userDeposits = await Deposit.find({
+      user: userId,
+      status: "approved",
+    })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    let suggestedAmounts = [];
+
+    if (userDeposits.length === 0) {
+      // Default suggestions for new users
+      suggestedAmounts = [5000, 10000, 20000, 50000];
+    } else {
+      // Calculate based on user history
+      const amounts = userDeposits.map((d) => d.amount);
+      const avgAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length;
+
+      // Find most common amount
+      const amountFrequency = {};
+      amounts.forEach((amt) => {
+        amountFrequency[amt] = (amountFrequency[amt] || 0) + 1;
+      });
+
+      const mostCommon = Object.keys(amountFrequency).reduce((a, b) =>
+        amountFrequency[a] > amountFrequency[b] ? a : b
+      );
+
+      // Round average to nearest 1000
+      const roundedAvg = Math.round(avgAmount / 1000) * 1000;
+
+      suggestedAmounts = [
+        roundedAvg * 0.5, // Half of average
+        parseInt(mostCommon), // Most common amount
+        roundedAvg, // Average
+        roundedAvg * 2, // Double average
+      ];
+
+      // Remove duplicates and sort
+      suggestedAmounts = [...new Set(suggestedAmounts)]
+        .filter((amt) => amt >= 1000)
+        .sort((a, b) => a - b)
+        .slice(0, 4);
+    }
+
+    // Add insights
+    const insights = {
+      totalDeposits: userDeposits.length,
+      averageAmount:
+        userDeposits.length > 0
+          ? Math.round(
+              userDeposits.reduce((sum, d) => sum + d.amount, 0) /
+                userDeposits.length
+            )
+          : 0,
+      lastDeposit: userDeposits[0]?.amount || 0,
+      recommendation:
+        userDeposits.length > 3 ? "Based on your history" : "Popular amounts",
+    };
+
+    res.json({
+      amounts: suggestedAmounts,
+      insights,
+    });
+  } catch (error) {
+    console.error("Suggested amounts error:", error);
+    res.status(500).json({
+      error: "Failed to get suggestions",
+      amounts: [5000, 10000, 20000, 50000],
     });
   }
 };

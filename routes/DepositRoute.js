@@ -70,4 +70,7 @@ router.get(
   userAuth.restrictTo("user"),
   dC.getDeposits
 );
+
+router.get("/suggested-amounts", userAuth.protect, dC.getSuggestedAmounts);
+
 module.exports = router;
