@@ -1,6 +1,6 @@
 const axios = require("axios");
 const dotenv = require("dotenv");
-dotenv.config({path: "./config.env"});
+dotenv.config({ path: "./config.env" });
 
 const HF_API_KEY = process.env.HF_API_KEY;
 const HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.3";
@@ -83,7 +83,7 @@ Assistant:
       const prompt = this.buildPrompt(history);
 
       const response = await axios.post(
-        `https://api-inference.huggingface.co/models/${HF_MODEL}`,
+        `https://router.huggingface.co/hf-inference/models/${HF_MODEL}`,
         {
           inputs: prompt,
           parameters: {
@@ -95,6 +95,7 @@ Assistant:
         {
           headers: {
             Authorization: HF_API_KEY ? `Bearer ${HF_API_KEY}` : undefined,
+            "Content-Type": "application/json",
           },
         }
       );
