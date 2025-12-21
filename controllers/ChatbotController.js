@@ -1,4 +1,5 @@
-const OpenAI = require("../services/openAI");
+const OpenAI = require("../services/hugginFace");
+//const OpenAI = require("../services/openAI");
 
 exports.chat = async (req, res) => {
   try {
