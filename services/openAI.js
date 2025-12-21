@@ -80,13 +80,17 @@ class OpenAIChatService {
         history = history.slice(-10);
       }
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        temperature: 0.3,
-        max_tokens: 300,
-        messages: [
-          { role: "system", content: topMartKnowledgeBase },
-          ...history,
+      const response = await openai.responses.create({
+        model: "gpt-4.1-mini",
+        input: [
+          {
+            role: "system",
+            content: topMartKnowledgeBase,
+          },
+          ...history.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
         ],
       });
 
