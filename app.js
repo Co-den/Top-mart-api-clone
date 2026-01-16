@@ -41,8 +41,11 @@ app.all("/", (req, res, next) => {
 // Enable CORS
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://localhost:3001",
   "http://localhost:3000/api/auth/register",
+  "http://localhost:3001/api/auth/register",
   "http://localhost:3000/api/auth/login",
+  "http://localhost:3001/api/auth/login",
   "https://top-mart-api.onrender.com",
   "https://top-dmtxpqmdq-codens-projects.vercel.app",
   "https://top-m-gvue-git-main-codens-projects.vercel.app",
